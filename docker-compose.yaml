@@ -44,6 +44,12 @@ services:
     depends_on:
       init-volumes:
         condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "tailscale status || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
     restart: unless-stopped
     logging:
       driver: "json-file"
@@ -62,6 +68,7 @@ services:
       - SERVICES=1
       - NETWORKS=1
       - EVENTS=1
+      - PING=1
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     networks:
@@ -69,6 +76,12 @@ services:
     restart: unless-stopped
     security_opt:
       - no-new-privileges:true
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:2375/_ping"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     logging:
       driver: "json-file"
       options:
@@ -86,6 +99,7 @@ services:
       - socket-proxy
       - tailscale
     command:
+      - --ping=true
       - --api.dashboard=true
       - --providers.docker=true
       - --providers.docker.endpoint=tcp://socket-proxy:2375
@@ -96,6 +110,12 @@ services:
       - --entrypoints.web.http.redirections.entrypoint.scheme=https
     volumes:
       - ${GATEWAY_HOME:-/srv/data/gateway}/volumes/traefik:/data
+    healthcheck:
+      test: ["CMD", "traefik", "healthcheck", "--ping"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     restart: unless-stopped
     logging:
       driver: "json-file"
@@ -110,7 +130,16 @@ services:
     image: cloudflare/cloudflared:latest
     container_name: gateway_cloudflared
     restart: unless-stopped
-    command: tunnel --no-autoupdate run
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        if [ -z "$$TUNNEL_TOKEN" ]; then
+          echo "[cloudflared] No CLOUDFLARE_TUNNEL_TOKEN configured. Idling safely..."
+          exec sleep infinity
+        else
+          echo "[cloudflared] Starting Cloudflare tunnel..."
+          exec cloudflared tunnel --no-autoupdate run
+        fi
     environment:
       - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}
     networks:
