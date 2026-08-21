@@ -14,137 +14,123 @@ services:
     entrypoint: ["/bin/sh", "-c"]
     command:
       - |
-        echo ">>> [Init] Creating gateway storage directories under /data..."
-        mkdir -p /data/volumes/tailscale /data/volumes/traefik
-
-        echo ">>> [Init] Setting volume permissions..."
+        echo ">>> [Init] Initializing Traefik and Arcane directories..."
+        mkdir -p /data/volumes/traefik/dynamic /data/volumes/arcane/data
+        touch /data/volumes/traefik/acme.json
+        chmod 600 /data/volumes/traefik/acme.json
         chmod -R 775 /data/volumes
-
         echo ">>> [Init] Gateway storage initialized successfully!"
 
   # ========================================================
-  # TAILSCALE (Secure Mesh Gateway & Network Namespace Carrier)
+  # TRAEFIK V3 (Edge Ingress & Wildcard SSL Ingress)
   # ========================================================
-  tailscale:
-    image: tailscale/tailscale:latest
-    container_name: gateway_tailscale
-    hostname: ${TS_HOSTNAME:-homelab-gw}
-    environment:
-      - TS_AUTHKEY=${TS_AUTHKEY}
-      - TS_STATE_DIR=/var/lib/tailscale
-      - TS_USERSPACE=false
-    volumes:
-      - ${GATEWAY_HOME:-/srv/data/gateway}/volumes/tailscale:/var/lib/tailscale
-      - /dev/net/tun:/dev/net/tun
-    cap_add:
-      - net_admin
-      - sys_module
-    networks:
-      - shared_net
-      - socket_proxy
-    depends_on:
-      init-volumes:
-        condition: service_completed_successfully
-    healthcheck:
-      test: ["CMD-SHELL", "tailscale status || exit 1"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 15s
-    restart: unless-stopped
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-
-  # ========================================================
-  # DOCKER SOCKET PROXY (Read-Only Secure Socket Isolation)
-  # ========================================================
-  socket-proxy:
-    image: tecnativa/docker-socket-proxy
-    container_name: gateway_socket_proxy
-    environment:
-      - CONTAINERS=1
-      - SERVICES=1
-      - NETWORKS=1
-      - EVENTS=1
-      - PING=1
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-    networks:
-      - socket_proxy
+  traefik:
+    image: traefik:v3.1
+    container_name: traefik
     restart: unless-stopped
     security_opt:
       - no-new-privileges:true
-    healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:2375/_ping"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 10s
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-
-  # ========================================================
-  # TRAEFIK V3 (Reverse Proxy & Ingress Controller)
-  # ========================================================
-  traefik:
-    image: traefik:v3
-    container_name: gateway_traefik
-    network_mode: service:tailscale
-    depends_on:
-      - socket-proxy
-      - tailscale
-    command:
-      - --ping=true
-      - --api.dashboard=true
-      - --providers.docker=true
-      - --providers.docker.endpoint=tcp://socket-proxy:2375
-      - --providers.docker.exposedbydefault=false
-      - --entrypoints.web.address=:80
-      - --entrypoints.websecure.address=:443
-    volumes:
-      - ${GATEWAY_HOME:-/srv/data/gateway}/volumes/traefik:/data
-    healthcheck:
-      test: ["CMD", "traefik", "healthcheck", "--ping"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 10s
-    restart: unless-stopped
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-
-  # ========================================================
-  # CLOUDFLARE TUNNEL (Zero Trust Outbound Ingress)
-  # ========================================================
-  cloudflared:
-    image: cloudflare/cloudflared:latest
-    container_name: gateway_cloudflared
-    restart: unless-stopped
-    command: tunnel --no-autoupdate run
+    ports:
+      - "80:80"
+      - "443:443"
     environment:
-      - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}
+      - CF_DNS_API_TOKEN=${CLOUDFLARE_API_TOKEN}
+      - ACME_EMAIL=${ACME_EMAIL}
+      - DOCKER_API_VERSION=1.45
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ${GATEWAY_HOME:-/srv/data/gateway}/volumes/traefik/acme.json:/etc/traefik/acme.json
+      - ./dynamic:/etc/traefik/dynamic:ro
+    command:
+      - "--global.checknewversion=false"
+      - "--global.sendanonymoususage=false"
+      - "--api.dashboard=true"
+      - "--entryPoints.web.address=:80"
+      - "--entryPoints.web.http.redirections.entryPoint.to=websecure"
+      - "--entryPoints.web.http.redirections.entryPoint.scheme=https"
+      - "--entryPoints.websecure.address=:443"
+      - "--entryPoints.websecure.http.tls.certResolver=cloudflare"
+      - "--entryPoints.websecure.http.tls.domains[0].main=${ROOT_DOMAIN:-bluewave.work}"
+      - "--entryPoints.websecure.http.tls.domains[0].sans=*.${ROOT_DOMAIN:-bluewave.work}"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--providers.docker.network=homelab_swarm_net"
+      - "--providers.file.directory=/etc/traefik/dynamic"
+      - "--providers.file.watch=true"
+      - "--certificatesresolvers.cloudflare.acme.dnschallenge=true"
+      - "--certificatesresolvers.cloudflare.acme.dnschallenge.provider=cloudflare"
+      - "--certificatesresolvers.cloudflare.acme.dnschallenge.resolvers=1.1.1.1:53,1.0.0.1:53"
+      - "--certificatesresolvers.cloudflare.acme.email=${ACME_EMAIL}"
+      - "--certificatesresolvers.cloudflare.acme.storage=/etc/traefik/acme.json"
+      - "--log.level=INFO"
     networks:
+      - homelab_swarm_net
       - shared_net
     depends_on:
-      - tailscale
+      init-volumes:
+        condition: service_completed_successfully
     logging:
       driver: "json-file"
       options:
         max-size: "10m"
         max-file: "3"
 
+  # ========================================================
+  # ARCANE (Modern Docker Management Cockpit)
+  # ========================================================
+  arcane:
+    image: ghcr.io/getarcaneapp/arcane:latest
+    container_name: arcane
+    restart: unless-stopped
+    environment:
+      - APP_URL=https://${ARCANE_HOSTNAME:-arcane.bluewave.work}
+      - ENCRYPTION_KEY=${ARCANE_ENCRYPTION_KEY}
+      - JWT_SECRET=${ARCANE_JWT_SECRET}
+      - PUID=${ARCANE_PUID:-1000}
+      - PGID=${ARCANE_PGID:-1000}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ${GATEWAY_HOME:-/srv/data/gateway}/volumes/arcane/data:/app/data
+    networks:
+      - homelab_swarm_net
+      - shared_net
+    depends_on:
+      init-volumes:
+        condition: service_completed_successfully
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.arcane.rule=Host(`${ARCANE_HOSTNAME:-arcane.bluewave.work}`) || Host(`homelab-dockhand.bluewave.work`)"
+      - "traefik.http.routers.arcane.entrypoints=websecure"
+      - "traefik.http.routers.arcane.tls=true"
+      - "traefik.http.services.arcane.loadbalancer.server.port=3552"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ========================================================
+  # DOCKHAND COMPATIBILITY BRIDGE (For Cloudflare Tunnel)
+  # ========================================================
+  dockhand-bridge:
+    image: alpine/socat
+    container_name: dockhand
+    restart: unless-stopped
+    command: tcp-listen:3000,fork,reuseaddr tcp:arcane:3552
+    depends_on:
+      - arcane
+    networks:
+      - shared_net
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
+
 networks:
+  homelab_swarm_net:
+    name: homelab_swarm_net
+    external: true
   shared_net:
     name: ${SHARED_NETWORK:-shared_net}
     external: true
-  socket_proxy:
-    internal: true

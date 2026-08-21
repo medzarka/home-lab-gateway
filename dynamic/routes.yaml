@@ -1,0 +1,117 @@
+http:
+  routers:
+    # ----------------------------------------------------
+    # Shortcut: /arcane -> Dedicated Arcane Domain
+    # ----------------------------------------------------
+    arcane-redirect:
+      rule: "Host(`homelab.bluewave.work`) && (Path(`/arcane`) || PathPrefix(`/arcane/`))"
+      entryPoints: ["websecure"]
+      middlewares: ["to-arcane-domain"]
+      service: "noop@internal"
+      priority: 100
+      tls: {}
+
+    # ----------------------------------------------------
+    # Homelab Control Portal (SQLite Dashboard on Orange Pi)
+    # ----------------------------------------------------
+    homelab-dashboard:
+      rule: "Host(`homelab.bluewave.work`)"
+      entryPoints: ["websecure"]
+      middlewares: ["security-headers", "compression"]
+      service: "dashboard-svc"
+      priority: 10
+      tls: {}
+
+    # ----------------------------------------------------
+    # Arcane Docker Management Cockpit
+    # ----------------------------------------------------
+    arcane:
+      rule: "Host(`arcane.bluewave.work`) || Host(`homelab-dockhand.bluewave.work`)"
+      entryPoints: ["websecure"]
+      middlewares: ["security-headers", "compression"]
+      service: "arcane-svc"
+      tls: {}
+
+    # ----------------------------------------------------
+    # LiteLLM AI Gateway (VM2: oci01-flex)
+    # ----------------------------------------------------
+    litellm:
+      rule: "Host(`litellm.bluewave.work`)"
+      entryPoints: ["websecure"]
+      middlewares: ["security-headers"]
+      service: "litellm-svc"
+      tls: {}
+
+    # ----------------------------------------------------
+    # Open-WebUI (VM2: oci01-flex)
+    # ----------------------------------------------------
+    open-webui:
+      rule: "Host(`open-webui.bluewave.work`)"
+      entryPoints: ["websecure"]
+      middlewares: ["security-headers", "compression"]
+      service: "openwebui-svc"
+      tls: {}
+
+    # ----------------------------------------------------
+    # LiteLLM Helper (VM2: oci01-flex)
+    # ----------------------------------------------------
+    litellm-helper:
+      rule: "Host(`litellm-helper.bluewave.work`)"
+      entryPoints: ["websecure"]
+      middlewares: ["security-headers"]
+      service: "litellmhelper-svc"
+      tls: {}
+
+    # ----------------------------------------------------
+    # Seafile (VM1: zap-vps)
+    # ----------------------------------------------------
+    seafile:
+      rule: "Host(`mycloud.bluewave.work`) || Host(`seafile.bluewave.work`)"
+      entryPoints: ["websecure"]
+      middlewares: ["security-headers"]
+      service: "seafile-svc"
+      tls: {}
+
+    # ----------------------------------------------------
+    # Immich Photo Library (VM1: zap-vps)
+    # ----------------------------------------------------
+    immich:
+      rule: "Host(`photos.bluewave.work`)"
+      entryPoints: ["websecure"]
+      middlewares: ["security-headers"]
+      service: "immich-svc"
+      tls: {}
+
+  services:
+    noop:
+      loadBalancer:
+        servers:
+          - url: "http://127.0.0.1:80"
+    dashboard-svc:
+      loadBalancer:
+        servers:
+          - url: "http://100.71.154.78:8085"
+    arcane-svc:
+      loadBalancer:
+        servers:
+          - url: "http://arcane:3552"
+    litellm-svc:
+      loadBalancer:
+        servers:
+          - url: "http://100.83.191.68:4000"
+    openwebui-svc:
+      loadBalancer:
+        servers:
+          - url: "http://100.83.191.68:3030"
+    litellmhelper-svc:
+      loadBalancer:
+        servers:
+          - url: "http://100.83.191.68:5001"
+    seafile-svc:
+      loadBalancer:
+        servers:
+          - url: "http://seafile:80"
+    immich-svc:
+      loadBalancer:
+        servers:
+          - url: "http://immich_server:2283"

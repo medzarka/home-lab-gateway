@@ -1,0 +1,39 @@
+http:
+  middlewares:
+    # ----------------------------------------------------
+    # Security Headers (OWASP Compliant)
+    # ----------------------------------------------------
+    security-headers:
+      headers:
+        browserXssFilter: true
+        contentTypeNosniff: true
+        forceSTSHeader: true
+        stsIncludeSubdomains: true
+        stsPreload: true
+        stsSeconds: 31536000
+        customFrameOptionsValue: "SAMEORIGIN"
+        referrerPolicy: "strict-origin-when-cross-origin"
+
+    # ----------------------------------------------------
+    # Rate Limiting (Brute-Force & DDoS Protection)
+    # ----------------------------------------------------
+    rate-limit:
+      rateLimit:
+        average: 100
+        burst: 50
+        period: "1s"
+
+    # ----------------------------------------------------
+    # HTTP Compression (Gzip / Brotli)
+    # ----------------------------------------------------
+    compression:
+      compress: {}
+
+    # ----------------------------------------------------
+    # Path Redirect: /arcane -> Dedicated Arcane Portal
+    # ----------------------------------------------------
+    to-arcane-domain:
+      redirectRegex:
+        regex: "^https?://homelab\\.bluewave\\.work/arcane/?(.*)"
+        replacement: "https://homelab-dockhand.bluewave.work/${1}"
+        permanent: false
