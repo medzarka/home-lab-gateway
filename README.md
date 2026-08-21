@@ -133,9 +133,53 @@ networks:
 
 ---
 
-### 🛡️ Optional: Adding Middlewares (Basic Auth, Path Stripping)
+### 🛡️ Optional: Adding Middlewares & Sub-Folder URL Routing
 
-#### A. Protect with Basic Authentication:
+#### A. Sub-Folder / Path-Based Routing (`PathPrefix` & `stripprefix`)
+
+Instead of creating a dedicated subdomain for every service, you can host multiple applications under sub-folders on the same domain (e.g. `https://homelab-gw.ts.net/whoami` or `https://yourdomain.com/tools/app`):
+
+```yaml
+services:
+  my-new-app:
+    image: traefik/whoami
+    container_name: my_whoami
+    restart: unless-stopped
+    networks:
+      - shared_net
+    labels:
+      - "traefik.enable=true"
+      
+      # 1. Catch traffic going to the /whoami path (on a specific domain or all domains)
+      - "traefik.http.routers.newapp.rule=PathPrefix(`/whoami`)"
+      - "traefik.http.routers.newapp.entrypoints=websecure"
+      - "traefik.http.routers.newapp.tls=true"
+      
+      # 2. Strip the '/whoami' prefix before forwarding to the container.
+      # Most backend apps listen at '/' and will return 404s if they receive '/whoami' in the path.
+      - "traefik.http.middlewares.newapp-strip.stripprefix.prefixes=/whoami"
+      - "traefik.http.routers.newapp.middlewares=newapp-strip"
+      
+      # 3. Target internal port and network
+      - "traefik.http.services.newapp.loadbalancer.server.port=80"
+      - "traefik.docker.network=shared_net"
+
+networks:
+  shared_net:
+    name: shared_net
+    external: true
+```
+
+> [!TIP]
+> **Sub-Folder Caveat for Web UIs:**
+> - **APIs, webhooks, and lightweight utilities** (like `whoami`, simple Flask/Express APIs) work seamlessly with `PathPrefix` and `stripprefix`.
+> - **Complex Single-Page Web Applications** (like Nextcloud, Grafana, Portainer) often have hardcoded asset links (e.g. `<script src="/assets/app.js">`). If hosted under a sub-folder, the browser will request `/assets/app.js` at the root domain unless the application has a native `BASE_URL` or `ROOT_URL` environment setting (e.g. `GF_SERVER_ROOT_URL=%(protocol)s://%(domain)s/grafana/`). For such apps, **subdomains** (`app.yourdomain.com`) are recommended.
+
+---
+
+#### B. Protect with HTTP Basic Authentication:
+Add a secure login popup in front of any internal container:
+
 ```yaml
     labels:
       - "traefik.enable=true"
@@ -143,20 +187,25 @@ networks:
       - "traefik.http.routers.my-app.entrypoints=websecure"
       - "traefik.http.routers.my-app.tls=true"
       - "traefik.http.routers.my-app.middlewares=my-app-auth"
-      # Generate hash via: htpasswd -nb user password (escape $ with $$ in compose)
+      # Generate hash via: htpasswd -nb admin yourpassword (escape $ with $$ in compose)
       - "traefik.http.middlewares.my-app-auth.basicauth.users=admin:$$apr1$$xyz$$abcdefg"
       - "traefik.http.services.my-app.loadbalancer.server.port=80"
       - "traefik.docker.network=shared_net"
 ```
 
-#### B. Strip Path Prefix (e.g. expose service at `/api`):
+---
+
+#### C. Custom Headers & HTTPS Redirects:
 ```yaml
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.my-app.rule=Host(`yourdomain.com`) && PathPrefix(`/api`)"
-      - "traefik.http.routers.my-app.middlewares=strip-api"
-      - "traefik.http.middlewares.strip-api.stripprefix.prefixes=/api"
-      - "traefik.http.services.my-app.loadbalancer.server.port=8000"
+      - "traefik.http.routers.my-app.rule=Host(`app.yourdomain.com`)"
+      - "traefik.http.routers.my-app.entrypoints=websecure"
+      - "traefik.http.routers.my-app.tls=true"
+      - "traefik.http.routers.my-app.middlewares=sec-headers"
+      - "traefik.http.middlewares.sec-headers.headers.sslredirect=true"
+      - "traefik.http.middlewares.sec-headers.headers.stsSeconds=315360000"
+      - "traefik.http.services.my-app.loadbalancer.server.port=8080"
       - "traefik.docker.network=shared_net"
 ```
 
