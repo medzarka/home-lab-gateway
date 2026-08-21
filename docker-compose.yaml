@@ -8,6 +8,7 @@ services:
     container_name: gateway_init_volumes
     user: "0:0"
     restart: "no"
+    network_mode: none
     volumes:
       - ${GATEWAY_HOME:-/srv/data/gateway}:/data
     entrypoint: ["/bin/sh", "-c"]
