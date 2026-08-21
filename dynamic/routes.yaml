@@ -26,7 +26,7 @@ http:
     # Arcane Docker Management Cockpit
     # ----------------------------------------------------
     arcane:
-      rule: "Host(`arcane.bluewave.work`) || Host(`homelab-dockhand.bluewave.work`)"
+      rule: "Host(`arcane.bluewave.work`)"
       entryPoints: ["websecure"]
       middlewares: ["security-headers", "compression"]
       service: "arcane-svc"

@@ -22,6 +22,43 @@ services:
         echo ">>> [Init] Gateway storage initialized successfully!"
 
   # ========================================================
+  # DOCKER SOCKET PROXY (Read-Only Secure Socket Isolation)
+  # ========================================================
+  socket-proxy:
+    image: tecnativa/docker-socket-proxy
+    container_name: gateway_socket_proxy
+    restart: unless-stopped
+    environment:
+      - CONTAINERS=1
+      - SERVICES=1
+      - NETWORKS=1
+      - NODES=1
+      - SWARM=1
+      - INFO=1
+      - VERSION=1
+      - EVENTS=1
+      - PING=1
+      - POST=0
+      - DELETE=0
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - socket_proxy
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:2375/_ping"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ========================================================
   # TRAEFIK V3 (Edge Ingress & Wildcard SSL Ingress)
   # ========================================================
   traefik:
@@ -36,9 +73,7 @@ services:
     environment:
       - CF_DNS_API_TOKEN=${CLOUDFLARE_API_TOKEN}
       - ACME_EMAIL=${ACME_EMAIL}
-      - DOCKER_API_VERSION=1.45
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
       - ${GATEWAY_HOME:-/srv/data/gateway}/volumes/traefik/acme.json:/etc/traefik/acme.json
       - ./dynamic:/etc/traefik/dynamic:ro
     command:
@@ -53,6 +88,7 @@ services:
       - "--entryPoints.websecure.http.tls.domains[0].main=${ROOT_DOMAIN:-bluewave.work}"
       - "--entryPoints.websecure.http.tls.domains[0].sans=*.${ROOT_DOMAIN:-bluewave.work}"
       - "--providers.docker=true"
+      - "--providers.docker.endpoint=tcp://socket-proxy:2375"
       - "--providers.docker.exposedbydefault=false"
       - "--providers.docker.network=homelab_swarm_net"
       - "--providers.file.directory=/etc/traefik/dynamic"
@@ -66,9 +102,12 @@ services:
     networks:
       - homelab_swarm_net
       - shared_net
+      - socket_proxy
     depends_on:
       init-volumes:
         condition: service_completed_successfully
+      socket-proxy:
+        condition: service_healthy
     logging:
       driver: "json-file"
       options:
@@ -99,7 +138,7 @@ services:
         condition: service_completed_successfully
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.arcane.rule=Host(`${ARCANE_HOSTNAME:-arcane.bluewave.work}`) || Host(`homelab-dockhand.bluewave.work`)"
+      - "traefik.http.routers.arcane.rule=Host(`${ARCANE_HOSTNAME:-arcane.bluewave.work}`)"
       - "traefik.http.routers.arcane.entrypoints=websecure"
       - "traefik.http.routers.arcane.tls=true"
       - "traefik.http.services.arcane.loadbalancer.server.port=3552"
@@ -109,24 +148,6 @@ services:
         max-size: "10m"
         max-file: "3"
 
-  # ========================================================
-  # DOCKHAND COMPATIBILITY BRIDGE (For Cloudflare Tunnel)
-  # ========================================================
-  dockhand-bridge:
-    image: alpine/socat
-    container_name: dockhand
-    restart: unless-stopped
-    command: tcp-listen:3000,fork,reuseaddr tcp:arcane:3552
-    depends_on:
-      - arcane
-    networks:
-      - shared_net
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "5m"
-        max-file: "2"
-
 networks:
   homelab_swarm_net:
     name: homelab_swarm_net
@@ -134,3 +155,6 @@ networks:
   shared_net:
     name: ${SHARED_NETWORK:-shared_net}
     external: true
+  socket_proxy:
+    name: gateway_socket_proxy_net
+    internal: true

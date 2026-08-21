@@ -35,5 +35,5 @@ http:
     to-arcane-domain:
       redirectRegex:
         regex: "^https?://homelab\\.bluewave\\.work/arcane/?(.*)"
-        replacement: "https://homelab-dockhand.bluewave.work/${1}"
+        replacement: "https://arcane.bluewave.work/${1}"
         permanent: false
