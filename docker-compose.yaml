@@ -130,25 +130,9 @@ services:
     image: cloudflare/cloudflared:latest
     container_name: gateway_cloudflared
     restart: unless-stopped
-    entrypoint: ["/bin/sh", "-c"]
-    command:
-      - |
-        if [ -z "$$TUNNEL_TOKEN" ]; then
-          echo "[cloudflared] No CLOUDFLARE_TUNNEL_TOKEN configured. Idling safely..."
-          exec sleep infinity
-        else
-          echo "[cloudflared] Starting Cloudflare tunnel..."
-          exec cloudflared tunnel --metrics 0.0.0.0:2000 --no-autoupdate run
-        fi
+    command: tunnel --no-autoupdate run
     environment:
       - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}
-      - TUNNEL_METRICS=0.0.0.0:2000
-    healthcheck:
-      test: ["CMD-SHELL", "if [ -z \"$$TUNNEL_TOKEN\" ]; then exit 0; fi; (wget -q -O - http://127.0.0.1:2000/ready >/dev/null 2>&1 || curl -s -f http://127.0.0.1:2000/ready >/dev/null 2>&1 || pidof cloudflared >/dev/null 2>&1 || exit 1)"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 15s
     networks:
       - shared_net
     depends_on:
@@ -162,5 +146,6 @@ services:
 networks:
   shared_net:
     name: ${SHARED_NETWORK:-shared_net}
+    external: true
   socket_proxy:
     internal: true
