@@ -55,7 +55,7 @@ Set your configuration values:
 1. In the **Cloudflare Zero Trust Dashboard**, navigate to **Networks $\rightarrow$ Tunnels**.
 2. Create a new Cloudflare Tunnel (e.g. `homelab-tunnel`) and paste the **Tunnel Token** into `CLOUDFLARE_TUNNEL_TOKEN` in `.env`.
 3. Under the **Public Hostnames** tab of the tunnel:
-   - **Public Hostname:** `*.yourdomain.com` (or specific subdomains like `dockhand.yourdomain.com`, `cloud.yourdomain.com`)
+   - **Public Hostname:** `*.yourdomain.com` (wildcard) or specific subdomains (`dockhand.yourdomain.com`, `seafile.yourdomain.com`, etc.)
    - **Service Type:** `HTTP`
    - **URL:** `gateway_tailscale:80` (or `gateway_traefik:80`)
 
@@ -66,6 +66,99 @@ Set your configuration values:
 docker compose up -d
 ```
 The `init-volumes` container will automatically create all persistent storage paths under `${GATEWAY_HOME}/volumes` with correct permissions.
+
+---
+
+## 🔌 How to Expose Any Container with Traefik
+
+To have Traefik automatically detect, route traffic to, and secure any Docker container in your homelab, follow these two simple requirements in the application's `docker-compose.yaml`:
+
+### 1. Attach the Container to `shared_net`
+The target container must join `shared_net` so Traefik can send HTTP packets to its internal IP.
+
+### 2. Add Traefik Labels
+Add Docker labels specifying the router name, hostname rule, and internal container port.
+
+---
+
+### 📋 Copy-Paste Template for Any Application
+
+```yaml
+services:
+  my-app:
+    image: my-app:latest
+    container_name: my_app
+    restart: unless-stopped
+    
+    # 1. Connect to the gateway shared network
+    networks:
+      - shared_net
+      
+    # 2. Configure Traefik Ingress Labels
+    labels:
+      # Enable Traefik discovery for this container
+      - "traefik.enable=true"
+      
+      # Routing Domain Rule (Match Tailscale domain and/or Cloudflare public domain)
+      - "traefik.http.routers.my-app.rule=Host(`app.homelab-gw.ts.net`) || Host(`app.yourdomain.com`)"
+      
+      # Entrypoint (websecure = HTTPS / 443)
+      - "traefik.http.routers.my-app.entrypoints=websecure"
+      - "traefik.http.routers.my-app.tls=true"
+      
+      # Internal port the container listens on (e.g. 80, 3000, 8080, 5000)
+      - "traefik.http.services.my-app.loadbalancer.server.port=8080"
+      
+      # Explicitly specify the network Traefik should use to reach this container
+      - "traefik.docker.network=shared_net"
+
+networks:
+  shared_net:
+    name: shared_net
+    external: true
+```
+
+---
+
+### 💡 Label Configuration Explained
+
+| Label | Description | Example |
+| :--- | :--- | :--- |
+| `traefik.enable=true` | Informs Traefik to create a reverse proxy route for this container. | `true` |
+| `traefik.http.routers.<app>.rule` | Domain/Host matching rule. Can combine multiple domains with `\|\|`. | `Host(\`seafile.homelab-gw.ts.net\`) \|\| Host(\`seafile.domain.com\`)` |
+| `traefik.http.routers.<app>.entrypoints` | Which port entrypoint to listen on (`websecure` for HTTPS :443, `web` for HTTP :80). | `websecure` |
+| `traefik.http.routers.<app>.tls=true` | Enables TLS termination for the router. | `true` |
+| `traefik.http.services.<app>.loadbalancer.server.port` | The **internal port** inside the container where the web server is listening. | `80`, `3000`, `8080`, `9085` |
+| `traefik.docker.network=shared_net` | Directs Traefik to route over `shared_net` (vital if the container has multiple networks). | `shared_net` |
+
+---
+
+### 🛡️ Optional: Adding Middlewares (Basic Auth, Path Stripping)
+
+#### A. Protect with Basic Authentication:
+```yaml
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.my-app.rule=Host(`admin.yourdomain.com`)"
+      - "traefik.http.routers.my-app.entrypoints=websecure"
+      - "traefik.http.routers.my-app.tls=true"
+      - "traefik.http.routers.my-app.middlewares=my-app-auth"
+      # Generate hash via: htpasswd -nb user password (escape $ with $$ in compose)
+      - "traefik.http.middlewares.my-app-auth.basicauth.users=admin:$$apr1$$xyz$$abcdefg"
+      - "traefik.http.services.my-app.loadbalancer.server.port=80"
+      - "traefik.docker.network=shared_net"
+```
+
+#### B. Strip Path Prefix (e.g. expose service at `/api`):
+```yaml
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.my-app.rule=Host(`yourdomain.com`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.my-app.middlewares=strip-api"
+      - "traefik.http.middlewares.strip-api.stripprefix.prefixes=/api"
+      - "traefik.http.services.my-app.loadbalancer.server.port=8000"
+      - "traefik.docker.network=shared_net"
+```
 
 ---
 
