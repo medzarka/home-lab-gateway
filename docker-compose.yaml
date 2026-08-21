@@ -14,8 +14,8 @@ services:
     entrypoint: ["/bin/sh", "-c"]
     command:
       - |
-        echo ">>> [Init] Initializing Traefik and Arcane directories..."
-        mkdir -p /data/volumes/traefik/dynamic /data/volumes/arcane/data
+        echo ">>> [Init] Initializing Traefik directories and cert storage..."
+        mkdir -p /data/volumes/traefik/dynamic
         touch /data/volumes/traefik/acme.json
         chmod 600 /data/volumes/traefik/acme.json
         chmod -R 775 /data/volumes
@@ -108,42 +108,6 @@ services:
         condition: service_completed_successfully
       socket-proxy:
         condition: service_healthy
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-
-  # ========================================================
-  # ARCANE (Modern Docker Management Cockpit)
-  # ========================================================
-  arcane:
-    image: ghcr.io/getarcaneapp/arcane:latest
-    container_name: arcane
-    restart: unless-stopped
-    environment:
-      - APP_URL=https://${ARCANE_HOSTNAME:-arcane.bluewave.work}
-      - ENCRYPTION_KEY=${ARCANE_ENCRYPTION_KEY}
-      - JWT_SECRET=${ARCANE_JWT_SECRET}
-      - PUID=${ARCANE_PUID:-1000}
-      - PGID=${ARCANE_PGID:-1000}
-    ports:
-      - "3552:3552"
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-      - ${GATEWAY_HOME:-/srv/data/gateway}/volumes/arcane/data:/app/data
-    networks:
-      - homelab_swarm_net
-      - shared_net
-    depends_on:
-      init-volumes:
-        condition: service_completed_successfully
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.arcane.rule=Host(`${ARCANE_HOSTNAME:-arcane.bluewave.work}`)"
-      - "traefik.http.routers.arcane.entrypoints=websecure"
-      - "traefik.http.routers.arcane.tls=true"
-      - "traefik.http.services.arcane.loadbalancer.server.port=3552"
     logging:
       driver: "json-file"
       options:
