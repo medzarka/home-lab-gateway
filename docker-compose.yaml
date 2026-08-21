@@ -106,8 +106,6 @@ services:
       - --providers.docker.exposedbydefault=false
       - --entrypoints.web.address=:80
       - --entrypoints.websecure.address=:443
-      - --entrypoints.web.http.redirections.entrypoint.to=websecure
-      - --entrypoints.web.http.redirections.entrypoint.scheme=https
     volumes:
       - ${GATEWAY_HOME:-/srv/data/gateway}/volumes/traefik:/data
     healthcheck:
