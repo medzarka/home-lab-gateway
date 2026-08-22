@@ -5,6 +5,7 @@
 
 server:
   address: "tcp://0.0.0.0:9091"
+  asset_path: "/config/assets"
   buffers:
     read: 65536
     write: 65536
@@ -32,16 +33,16 @@ authentication_backend:
 session:
   name: "authelia_session"
   secret: "88e41276bc5fd92ee8d638c9ed85e0cddfef274fe7165a6914a841b2f9d536ea"
-  expiration: "1h"
-  inactivity: "15m"
-  remember_me: "1M"
+  expiration: "1w"
+  inactivity: "24h"
+  remember_me: "1w"
   cookies:
     - domain: "bluewave.work"
       authelia_url: "https://auth.bluewave.work"
       default_redirection_url: "https://homelab.bluewave.work"
 
 totp:
-  issuer: "bluewave.work"
+  issuer: "Bluewave Homelab"
   period: 30
   skew: 1
 

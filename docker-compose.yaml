@@ -68,6 +68,7 @@ services:
     volumes:
       - ./authelia/configuration.yml:/config/configuration.yml:ro
       - ./authelia/users_database.yml:/config/users_database.yml:ro
+      - ./authelia/assets:/config/assets:ro
       - ${DATA_DIR:-/home/mgrsys/DATA}/gateway/data/authelia:/config/data
     environment:
       - TZ=${TZ:-UTC}

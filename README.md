@@ -71,16 +71,18 @@ Persistent state is stored cleanly outside the Git repository in the standard ho
 
 ---
 
-## 🔑 Authelia User & Password Management
+## 🔑 Authelia User, Group & Access Control Management
 
 All credentials are encrypted with **Argon2id** and stored in [`authelia/users_database.yml`](authelia/users_database.yml).
 
-### Generate a New Password Hash:
+### 1. Adding a New User:
+
+#### Step 1: Generate an Argon2id Password Hash
 ```bash
 docker run --rm authelia/authelia:latest authelia crypto hash generate argon2 --password 'YourNewPassword'
 ```
 
-### Update User in `authelia/users_database.yml`:
+#### Step 2: Add User to [`authelia/users_database.yml`](authelia/users_database.yml)
 ```yaml
 users:
   admin:
@@ -89,5 +91,66 @@ users:
     email: "medzarka@gmail.com"
     groups:
       - admins
+      - devops
+
+  john:
+    displayname: "John Doe"
+    password: "$argon2id$v=19$m=65536,t=3,p=4$..."
+    email: "john@bluewave.work"
+    groups:
+      - users
+      - family
 ```
-Authelia watches file changes and reloads credentials **instantly with zero downtime**.
+
+---
+
+### 2. Restricting Services by User or Group (ACLs)
+
+In [`authelia/configuration.yml`](authelia/configuration.yml), you can create granular role-based rules under `access_control.rules`:
+
+```yaml
+access_control:
+  default_policy: "deny"
+  rules:
+    # --- Public Bypass (APIs & Static Assets) ---
+    - domain: "auth.bluewave.work"
+      policy: "bypass"
+
+    # --- Only 'admins' can access Traefik, Arcane, and Cluster Metrics (2FA) ---
+    - domain:
+        - "traefik.bluewave.work"
+        - "metrics.bluewave.work"
+        - "arcane.bluewave.work"
+      subject:
+        - "group:admins"
+      policy: "two_factor"
+
+    # --- Only 'devops' and 'admins' can access container logs ---
+    - domain:
+        - "logs.bluewave.work"
+      subject:
+        - "group:admins"
+        - "group:devops"
+      policy: "one_factor"
+
+    # --- All logged-in users (admins, users, family) can access Homepage ---
+    - domain:
+        - "homelab.bluewave.work"
+        - "hub.bluewave.work"
+      subject:
+        - "group:admins"
+        - "group:users"
+        - "group:family"
+      policy: "one_factor"
+```
+
+> **⚡ Zero Downtime:** Authelia watches configuration and user database files automatically. Changes take effect **instantly without restarting containers**.
+
+---
+
+### 3. Custom Branding & Logo
+
+Custom branding assets reside in `authelia/assets/`:
+* `authelia/assets/logo.png` $\rightarrow$ Custom login card logo.
+* `authelia/assets/favicon.ico` $\rightarrow$ Custom browser tab icon.
+
