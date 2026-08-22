@@ -96,6 +96,10 @@ services:
       - ${DATA_DIR:-/home/mgrsys/DATA}/gateway/data/traefik/acme.json:/etc/traefik/acme.json
       - ${DATA_DIR:-/home/mgrsys/DATA}/gateway/data/traefik/logs:/var/log/traefik
       - ./dynamic:/etc/traefik/dynamic:ro
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+      - "worker-oci01:${TS_VM2_OCI01:-127.0.0.1}"
+      - "worker-orangepi:${TS_VM3_ORANGEPI:-127.0.0.1}"
     command:
       - "--global.checknewversion=false"
       - "--global.sendanonymoususage=false"
