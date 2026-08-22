@@ -4,11 +4,10 @@ http:
     # Authelia - Centralized SSO Authentication Portal
     # ----------------------------------------------------
     authelia:
-      rule: "Host(`auth.example.com`)"
+      rule: "HostRegexp(`^auth\\..+$$`)"
       entryPoints: ["websecure"]
       middlewares: ["app-fail2ban", "security-headers", "compression"]
       service: "authelia-svc"
-      priority: 100
       tls:
         certResolver: "cloudflare"
 
@@ -16,11 +15,10 @@ http:
     # Homepage - Unified Homelab Portal & Service Cockpit (SSO Protected)
     # ----------------------------------------------------
     homepage:
-      rule: "Host(`homelab.example.com`) || Host(`hub.example.com`)"
+      rule: "HostRegexp(`^(homelab|hub)\\..+$$`)"
       entryPoints: ["websecure"]
       middlewares: ["authelia-sso", "app-fail2ban", "security-headers", "compression"]
       service: "homepage-svc"
-      priority: 20
       tls:
         certResolver: "cloudflare"
 
@@ -28,7 +26,7 @@ http:
     # Beszel - Cluster Telemetry & Bandwidth Metrics (SSO 2FA Protected)
     # ----------------------------------------------------
     beszel:
-      rule: "Host(`metrics.example.com`) || Host(`beszel.example.com`)"
+      rule: "HostRegexp(`^(metrics|beszel)\\..+$$`)"
       entryPoints: ["websecure"]
       middlewares: ["authelia-sso", "app-fail2ban", "security-headers", "compression"]
       service: "beszel-svc"
@@ -39,7 +37,7 @@ http:
     # Dozzle - Centralized Multi-Node Container Log Viewer (SSO Protected)
     # ----------------------------------------------------
     dozzle:
-      rule: "Host(`logs.example.com`)"
+      rule: "HostRegexp(`^logs\\..+$$`)"
       entryPoints: ["websecure"]
       middlewares: ["authelia-sso", "app-fail2ban", "security-headers"]
       service: "dozzle-svc"
@@ -50,7 +48,7 @@ http:
     # Uptime Kuma - Multi-Node Status & Health Alerts
     # ----------------------------------------------------
     uptime-kuma:
-      rule: "Host(`status.example.com`)"
+      rule: "HostRegexp(`^status\\..+$$`)"
       entryPoints: ["websecure"]
       middlewares: ["app-fail2ban", "security-headers", "compression"]
       service: "uptimekuma-svc"
@@ -61,7 +59,7 @@ http:
     # Traefik Web Dashboard & Visual Monitoring GUI (SSO 2FA Protected)
     # ----------------------------------------------------
     traefik-dashboard:
-      rule: "Host(`traefik.example.com`)"
+      rule: "HostRegexp(`^traefik\\..+$$`)"
       entryPoints: ["websecure"]
       middlewares: ["authelia-sso", "app-fail2ban", "security-headers", "compression"]
       service: "api@internal"
@@ -72,11 +70,10 @@ http:
     # Shortcut: /arcane -> Dedicated Arcane Domain
     # ----------------------------------------------------
     arcane-redirect:
-      rule: "Host(`homelab.example.com`) && (Path(`/arcane`) || PathPrefix(`/arcane/`))"
+      rule: "HostRegexp(`^(homelab|hub)\\..+$$`) && (Path(`/arcane`) || PathPrefix(`/arcane/`))"
       entryPoints: ["websecure"]
       middlewares: ["to-arcane-domain"]
       service: "noop@internal"
-      priority: 100
       tls:
         certResolver: "cloudflare"
 
@@ -84,7 +81,7 @@ http:
     # Arcane Docker Management Cockpit (VM1: zap-vps)
     # ----------------------------------------------------
     arcane:
-      rule: "Host(`arcane.example.com`)"
+      rule: "HostRegexp(`^arcane\\..+$$`)"
       entryPoints: ["websecure"]
       middlewares: ["app-fail2ban", "security-headers", "compression"]
       service: "arcane-svc"
@@ -95,7 +92,7 @@ http:
     # LiteLLM AI Gateway (VM2: oci01-flex)
     # ----------------------------------------------------
     litellm:
-      rule: "Host(`litellm.example.com`)"
+      rule: "HostRegexp(`^litellm\\..+$$`)"
       entryPoints: ["websecure"]
       middlewares: ["app-fail2ban", "security-headers"]
       service: "litellm-svc"
@@ -106,7 +103,7 @@ http:
     # Open-WebUI (VM2: oci01-flex)
     # ----------------------------------------------------
     open-webui:
-      rule: "Host(`open-webui.example.com`)"
+      rule: "HostRegexp(`^open-webui\\..+$$`)"
       entryPoints: ["websecure"]
       middlewares: ["app-fail2ban", "security-headers", "compression"]
       service: "openwebui-svc"
@@ -117,7 +114,7 @@ http:
     # LiteLLM Helper (VM2: oci01-flex)
     # ----------------------------------------------------
     litellm-helper:
-      rule: "Host(`litellm-helper.example.com`)"
+      rule: "HostRegexp(`^litellm-helper\\..+$$`)"
       entryPoints: ["websecure"]
       middlewares: ["app-fail2ban", "security-headers"]
       service: "litellmhelper-svc"
@@ -128,7 +125,7 @@ http:
     # Seafile (VM1: zap-vps)
     # ----------------------------------------------------
     seafile:
-      rule: "Host(`mycloud.example.com`) || Host(`seafile.example.com`)"
+      rule: "HostRegexp(`^(mycloud|seafile)\\..+$$`)"
       entryPoints: ["websecure"]
       middlewares: ["app-fail2ban", "security-headers"]
       service: "seafile-svc"
@@ -139,7 +136,7 @@ http:
     # Immich Photo Library (VM1: zap-vps)
     # ----------------------------------------------------
     immich:
-      rule: "Host(`photos.example.com`)"
+      rule: "HostRegexp(`^photos\\..+$$`)"
       entryPoints: ["websecure"]
       middlewares: ["app-fail2ban", "security-headers"]
       service: "immich-svc"
@@ -155,42 +152,52 @@ http:
       loadBalancer:
         servers:
           - url: "http://authelia:9091"
+
     homepage-svc:
       loadBalancer:
         servers:
           - url: "http://homepage:3000"
+
     beszel-svc:
       loadBalancer:
         servers:
           - url: "http://beszel:8090"
+
     dozzle-svc:
       loadBalancer:
         servers:
           - url: "http://dozzle:8080"
+
     uptimekuma-svc:
       loadBalancer:
         servers:
-          - url: "http://uptime-kuma:3001"
+          - url: "http://uptime_kuma:3001"
+
     arcane-svc:
       loadBalancer:
         servers:
-          - url: "http://100.119.246.120:3552"
+          - url: "http://${TS_VM1_ZAP_VPS:-127.0.0.1}:3552"
+
     litellm-svc:
       loadBalancer:
         servers:
-          - url: "http://100.83.191.68:4000"
+          - url: "http://${TS_VM2_OCI01:-127.0.0.1}:4000"
+
     openwebui-svc:
       loadBalancer:
         servers:
-          - url: "http://100.83.191.68:3030"
+          - url: "http://${TS_VM2_OCI01:-127.0.0.1}:3030"
+
     litellmhelper-svc:
       loadBalancer:
         servers:
-          - url: "http://100.83.191.68:5001"
+          - url: "http://${TS_VM2_OCI01:-127.0.0.1}:5001"
+
     seafile-svc:
       loadBalancer:
         servers:
           - url: "http://seafile:80"
+
     immich-svc:
       loadBalancer:
         servers:
