@@ -4,7 +4,7 @@ http:
     # Authelia - Centralized SSO Authentication Portal
     # ----------------------------------------------------
     authelia:
-      rule: "HostRegexp(`^auth\\..+$`)"
+      rule: "HostRegexp(`auth\\..*`)"
       entryPoints: ["websecure"]
       middlewares: ["app-fail2ban", "security-headers", "compression"]
       service: "authelia-svc"
