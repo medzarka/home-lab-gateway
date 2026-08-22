@@ -48,7 +48,11 @@ The **Homelab Gateway** is the centralized **Edge Ingress Controller** deployed 
    - **Docker Swarm & File Discovery:** Discovers services via Swarm container labels and file-based dynamic routes (`dynamic/`).
 2. **Socket Security Hardening:**
    - Uses `tecnativa/docker-socket-proxy` to isolate the host Docker daemon with a read-only API (`tcp://socket-proxy:2375`).
-3. **OWASP Security Middleware:**
+3. **Fail2Ban In-Memory Defense (`tomMoulard/fail2ban`):**
+   - Automatically bans malicious scanners and brute-force IPs after 5 failed requests while whitelisting the Tailscale mesh.
+4. **GoAccess Real-Time Traffic & Bandwidth Dashboard:**
+   - Visualizes live and historical data transfer (hourly, daily, monthly) and top subdomains at `https://traffic.bluewave.work`.
+5. **OWASP Security Middleware:**
    - Enforces HSTS, XSS protection, anti-clickjacking, and brute-force rate-limiting (100 req/s).
 
 ---

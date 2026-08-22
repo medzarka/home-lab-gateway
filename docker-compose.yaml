@@ -14,9 +14,9 @@ services:
     entrypoint: ["/bin/sh", "-c"]
     command:
       - |
-        echo ">>> [Init] Initializing Traefik directories and cert storage..."
+        echo ">>> [Init] Initializing Traefik and GoAccess directories..."
         mkdir -p /data/volumes/traefik/dynamic /data/volumes/traefik/logs
-        touch /data/volumes/traefik/acme.json
+        touch /data/volumes/traefik/acme.json /data/volumes/traefik/logs/access.log
         chmod 600 /data/volumes/traefik/acme.json
         chmod -R 775 /data/volumes
         echo ">>> [Init] Gateway storage initialized successfully!"
@@ -114,6 +114,41 @@ services:
         condition: service_completed_successfully
       socket-proxy:
         condition: service_healthy
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ========================================================
+  # GOACCESS (Real-Time Visual Traffic & Bandwidth Dashboard)
+  # ========================================================
+  goaccess:
+    image: xavierh/goaccess:latest
+    container_name: gateway_goaccess
+    restart: unless-stopped
+    environment:
+      - TZ=${TZ:-UTC}
+      - LOG_TYPE=COMBINED
+      - SKIP_ARCHIVED_LOGS=False
+      - RESTORE=False
+      - PERSISTENCE=False
+    volumes:
+      - ${GATEWAY_HOME:-/srv/data/gateway}/volumes/traefik/logs:/opt/log:ro
+    networks:
+      - homelab_swarm_net
+      - shared_net
+    depends_on:
+      init-volumes:
+        condition: service_completed_successfully
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.traffic.rule=Host(`traffic.${ROOT_DOMAIN:-bluewave.work}`)"
+      - "traefik.http.routers.traffic.entrypoints=websecure"
+      - "traefik.http.routers.traffic.middlewares=traefik-auth,security-headers"
+      - "traefik.http.routers.traffic.tls=true"
+      - "traefik.http.routers.traffic.tls.certresolver=cloudflare"
+      - "traefik.http.services.traffic.loadbalancer.server.port=7890"
     logging:
       driver: "json-file"
       options:
