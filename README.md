@@ -46,12 +46,12 @@ The **Homelab Gateway** is the centralized **Edge Ingress Controller** deployed 
    - **Automated Wildcard SSL:** Provisions and auto-renews Let's Encrypt wildcard certificates (`*.bluewave.work` and `bluewave.work`) via Cloudflare DNS-01 ACME challenges.
    - **Automatic HTTPS Redirection:** All port 80 HTTP requests are automatically upgraded to port 443 HTTPS.
    - **Docker Swarm & File Discovery:** Discovers services via Swarm container labels and file-based dynamic routes (`dynamic/`).
-2. **Socket Security Hardening:**
+2. **Authelia Single Sign-On (SSO) & 2FA:**
+   - Centralized authentication portal at `https://auth.bluewave.work` with 1FA/2FA access control policies and ForwardAuth integration.
+3. **Socket Security Hardening:**
    - Uses `tecnativa/docker-socket-proxy` to isolate the host Docker daemon with a read-only API (`tcp://socket-proxy:2375`).
-3. **Fail2Ban In-Memory Defense (`tomMoulard/fail2ban`):**
+4. **Fail2Ban In-Memory Defense (`tomMoulard/fail2ban`):**
    - Automatically bans malicious scanners and brute-force IPs after 5 failed requests while whitelisting the Tailscale mesh.
-4. **GoAccess Real-Time Traffic & Bandwidth Dashboard:**
-   - Visualizes live and historical data transfer (hourly, daily, monthly) and top subdomains at `https://traffic.bluewave.work`.
 5. **OWASP Security Middleware:**
    - Enforces HSTS, XSS protection, anti-clickjacking, and brute-force rate-limiting (100 req/s).
 

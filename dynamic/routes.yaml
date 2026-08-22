@@ -1,35 +1,47 @@
 http:
   routers:
     # ----------------------------------------------------
-    # Homepage - Unified Homelab Portal & Service Cockpit
+    # Authelia - Centralized SSO Authentication Portal
+    # ----------------------------------------------------
+    authelia:
+      rule: "Host(`auth.bluewave.work`)"
+      entryPoints: ["websecure"]
+      middlewares: ["app-fail2ban", "security-headers", "compression"]
+      service: "authelia-svc"
+      priority: 100
+      tls:
+        certResolver: "cloudflare"
+
+    # ----------------------------------------------------
+    # Homepage - Unified Homelab Portal & Service Cockpit (SSO Protected)
     # ----------------------------------------------------
     homepage:
       rule: "Host(`homelab.bluewave.work`) || Host(`hub.bluewave.work`)"
       entryPoints: ["websecure"]
-      middlewares: ["app-fail2ban", "security-headers", "compression"]
+      middlewares: ["authelia-sso", "app-fail2ban", "security-headers", "compression"]
       service: "homepage-svc"
       priority: 20
       tls:
         certResolver: "cloudflare"
 
     # ----------------------------------------------------
-    # Beszel - Cluster Telemetry & Bandwidth Metrics
+    # Beszel - Cluster Telemetry & Bandwidth Metrics (SSO 2FA Protected)
     # ----------------------------------------------------
     beszel:
       rule: "Host(`metrics.bluewave.work`) || Host(`beszel.bluewave.work`)"
       entryPoints: ["websecure"]
-      middlewares: ["app-fail2ban", "security-headers", "compression"]
+      middlewares: ["authelia-sso", "app-fail2ban", "security-headers", "compression"]
       service: "beszel-svc"
       tls:
         certResolver: "cloudflare"
 
     # ----------------------------------------------------
-    # Dozzle - Centralized Multi-Node Container Log Viewer
+    # Dozzle - Centralized Multi-Node Container Log Viewer (SSO Protected)
     # ----------------------------------------------------
     dozzle:
       rule: "Host(`logs.bluewave.work`)"
       entryPoints: ["websecure"]
-      middlewares: ["traefik-auth", "app-fail2ban", "security-headers"]
+      middlewares: ["authelia-sso", "app-fail2ban", "security-headers"]
       service: "dozzle-svc"
       tls:
         certResolver: "cloudflare"
@@ -46,12 +58,12 @@ http:
         certResolver: "cloudflare"
 
     # ----------------------------------------------------
-    # Traefik Web Dashboard & Visual Monitoring GUI
+    # Traefik Web Dashboard & Visual Monitoring GUI (SSO 2FA Protected)
     # ----------------------------------------------------
     traefik-dashboard:
       rule: "Host(`traefik.bluewave.work`)"
       entryPoints: ["websecure"]
-      middlewares: ["traefik-auth", "app-fail2ban", "security-headers", "compression"]
+      middlewares: ["authelia-sso", "app-fail2ban", "security-headers", "compression"]
       service: "api@internal"
       tls:
         certResolver: "cloudflare"
@@ -139,6 +151,10 @@ http:
       loadBalancer:
         servers:
           - url: "http://127.0.0.1:80"
+    authelia-svc:
+      loadBalancer:
+        servers:
+          - url: "http://authelia:9091"
     homepage-svc:
       loadBalancer:
         servers:

@@ -1,0 +1,81 @@
+---
+# ==============================================================================
+# AUTHELIA CONFIGURATION (https://www.authelia.com/configuration/)
+# ==============================================================================
+
+server:
+  address: "tcp://0.0.0.0:9091"
+
+log:
+  level: "info"
+
+theme: "dark"
+
+identity_validation:
+  reset_password:
+    jwt_secret: "d990cd84cd49d8264cc6962552f30cc30e9d9388a2f9382bf8bfd61dc458ea06"
+
+authentication_backend:
+  file:
+    path: "/config/users_database.yml"
+    password:
+      algorithm: "argon2"
+
+session:
+  name: "authelia_session"
+  secret: "88e41276bc5fd92ee8d638c9ed85e0cddfef274fe7165a6914a841b2f9d536ea"
+  expiration: "1h"
+  inactivity: "15m"
+  remember_me: "1M"
+  cookies:
+    - domain: "bluewave.work"
+      authelia_url: "https://auth.bluewave.work"
+      default_redirection_url: "https://homelab.bluewave.work"
+
+storage:
+  encryption_key: "74f4ff3849ef73c3f3545cfd214a58bf0ed376250da6cdb32e458bf5d27e33aa"
+  local:
+    path: "/config/db.sqlite3"
+
+notifier:
+  filesystem:
+    filename: "/config/notification.txt"
+
+access_control:
+  default_policy: "deny"
+  rules:
+    # --------------------------------------------------------------------------
+    # 1. Public Endpoints & APIs (Bypass SSO)
+    # --------------------------------------------------------------------------
+    - domain: "auth.bluewave.work"
+      policy: "bypass"
+
+    - domain:
+        - "photos.bluewave.work"
+        - "mycloud.bluewave.work"
+        - "seafile.bluewave.work"
+      resources:
+        - "^/api/.*$"
+        - "^/api2/.*$"
+        - "^/seafhttp/.*$"
+      policy: "bypass"
+
+    # --------------------------------------------------------------------------
+    # 2. Portal & Dashboards (1-Factor: Username + Password)
+    # --------------------------------------------------------------------------
+    - domain:
+        - "homelab.bluewave.work"
+        - "hub.bluewave.work"
+        - "logs.bluewave.work"
+        - "status.bluewave.work"
+      policy: "one_factor"
+
+    # --------------------------------------------------------------------------
+    # 3. Critical Infrastructure Cockpits (2-Factor: Password + TOTP 2FA)
+    # --------------------------------------------------------------------------
+    - domain:
+        - "traefik.bluewave.work"
+        - "metrics.bluewave.work"
+        - "beszel.bluewave.work"
+        - "arcane.bluewave.work"
+      policy: "two_factor"
