@@ -15,6 +15,19 @@ http:
         referrerPolicy: "strict-origin-when-cross-origin"
 
     # ----------------------------------------------------
+    # Authelia ForwardAuth SSO Middleware
+    # ----------------------------------------------------
+    authelia-sso:
+      forwardAuth:
+        address: "http://authelia:9091/api/verify"
+        trustForwardHeader: true
+        authResponseHeaders:
+          - "Remote-User"
+          - "Remote-Groups"
+          - "Remote-Name"
+          - "Remote-Email"
+
+    # ----------------------------------------------------
     # Fail2Ban In-Memory Protection (tomMoulard/fail2ban)
     # ----------------------------------------------------
     app-fail2ban:
