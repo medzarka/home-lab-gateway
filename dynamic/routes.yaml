@@ -1,6 +1,17 @@
 http:
   routers:
     # ----------------------------------------------------
+    # GoAccess Real-Time Traffic & Bandwidth Dashboard
+    # ----------------------------------------------------
+    traffic:
+      rule: "Host(`traffic.bluewave.work`)"
+      entryPoints: ["websecure"]
+      middlewares: ["traefik-auth", "security-headers"]
+      service: "traffic-svc"
+      tls:
+        certResolver: "cloudflare"
+
+    # ----------------------------------------------------
     # Traefik Web Dashboard & Visual Monitoring GUI
     # ----------------------------------------------------
     traefik-dashboard:
@@ -106,6 +117,10 @@ http:
       loadBalancer:
         servers:
           - url: "http://127.0.0.1:80"
+    traffic-svc:
+      loadBalancer:
+        servers:
+          - url: "http://traffic_web:80"
     dashboard-svc:
       loadBalancer:
         servers:
