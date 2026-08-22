@@ -73,10 +73,6 @@ services:
       - ${DATA_DIR:-/home/mgrsys/DATA}/gateway/data/authelia:/config/data
     environment:
       - TZ=${TZ:-UTC}
-      - AUTHELIA_SESSION_COOKIES_0_DOMAIN=${ROOT_DOMAIN:-example.com}
-      - AUTHELIA_SESSION_COOKIES_0_AUTHELIA_URL=https://auth.${ROOT_DOMAIN:-example.com}
-      - AUTHELIA_SESSION_COOKIES_0_DEFAULT_REDIRECTION_URL=https://homelab.${ROOT_DOMAIN:-example.com}
-      - AUTHELIA_TOTP_ISSUER=${ROOT_DOMAIN:-Homelab SSO}
     labels:
       - "traefik.enable=true"
       - "traefik.http.middlewares.authelia-sso.forwardauth.address=http://authelia:9091/api/verify?rd=https%3A%2F%2Fauth.${ROOT_DOMAIN:-example.com}%2F"
