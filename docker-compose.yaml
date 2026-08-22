@@ -1,6 +1,28 @@
 services:
 
   # ========================================================
+  # STORAGE HELPER (Automated Directory & Permissions Guard)
+  # ========================================================
+  storage-init:
+    image: alpine:latest
+    container_name: gateway_storage_init
+    user: "0:0"
+    restart: unless-stopped
+    network_mode: none
+    volumes:
+      - ${DATA_DIR:-/home/mgrsys/DATA}/gateway/data:/data
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        echo ">>> [Storage Init] Setting up directories and permissions..."
+        mkdir -p /data/traefik/logs /data/authelia
+        touch /data/traefik/acme.json /data/traefik/logs/access.log
+        chmod -R 775 /data
+        chmod 600 /data/traefik/acme.json
+        echo ">>> [Storage Init] Permissions applied. Storage guard active."
+        sleep infinity
+
+  # ========================================================
   # DOCKER SOCKET PROXY (Read-Only Secure Socket Isolation)
   # ========================================================
   socket-proxy:
