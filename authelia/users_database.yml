@@ -8,7 +8,7 @@ users:
     displayname: "Homelab Administrator"
     # Default password is: admin (Change this using: authelia crypto hash generate argon2 --password <new_pass>)
     password: "$argon2id$v=19$m=65536,t=3,p=4$g3UXpKOIIR0OzA8ULE8xrQ$E97s87YXsOprCN9X8lRyX1Mi6Od05b35bMnkWyvuRFI"
-    email: "medzarka@gmail.com"
+    email: "admin@example.com"
     groups:
       - admins
       - devops

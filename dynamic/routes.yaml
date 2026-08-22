@@ -4,7 +4,7 @@ http:
     # Authelia - Centralized SSO Authentication Portal
     # ----------------------------------------------------
     authelia:
-      rule: "Host(`auth.bluewave.work`)"
+      rule: "Host(`auth.example.com`)"
       entryPoints: ["websecure"]
       middlewares: ["app-fail2ban", "security-headers", "compression"]
       service: "authelia-svc"
@@ -16,7 +16,7 @@ http:
     # Homepage - Unified Homelab Portal & Service Cockpit (SSO Protected)
     # ----------------------------------------------------
     homepage:
-      rule: "Host(`homelab.bluewave.work`) || Host(`hub.bluewave.work`)"
+      rule: "Host(`homelab.example.com`) || Host(`hub.example.com`)"
       entryPoints: ["websecure"]
       middlewares: ["authelia-sso", "app-fail2ban", "security-headers", "compression"]
       service: "homepage-svc"
@@ -28,7 +28,7 @@ http:
     # Beszel - Cluster Telemetry & Bandwidth Metrics (SSO 2FA Protected)
     # ----------------------------------------------------
     beszel:
-      rule: "Host(`metrics.bluewave.work`) || Host(`beszel.bluewave.work`)"
+      rule: "Host(`metrics.example.com`) || Host(`beszel.example.com`)"
       entryPoints: ["websecure"]
       middlewares: ["authelia-sso", "app-fail2ban", "security-headers", "compression"]
       service: "beszel-svc"
@@ -39,7 +39,7 @@ http:
     # Dozzle - Centralized Multi-Node Container Log Viewer (SSO Protected)
     # ----------------------------------------------------
     dozzle:
-      rule: "Host(`logs.bluewave.work`)"
+      rule: "Host(`logs.example.com`)"
       entryPoints: ["websecure"]
       middlewares: ["authelia-sso", "app-fail2ban", "security-headers"]
       service: "dozzle-svc"
@@ -50,7 +50,7 @@ http:
     # Uptime Kuma - Multi-Node Status & Health Alerts
     # ----------------------------------------------------
     uptime-kuma:
-      rule: "Host(`status.bluewave.work`)"
+      rule: "Host(`status.example.com`)"
       entryPoints: ["websecure"]
       middlewares: ["app-fail2ban", "security-headers", "compression"]
       service: "uptimekuma-svc"
@@ -61,7 +61,7 @@ http:
     # Traefik Web Dashboard & Visual Monitoring GUI (SSO 2FA Protected)
     # ----------------------------------------------------
     traefik-dashboard:
-      rule: "Host(`traefik.bluewave.work`)"
+      rule: "Host(`traefik.example.com`)"
       entryPoints: ["websecure"]
       middlewares: ["authelia-sso", "app-fail2ban", "security-headers", "compression"]
       service: "api@internal"
@@ -72,7 +72,7 @@ http:
     # Shortcut: /arcane -> Dedicated Arcane Domain
     # ----------------------------------------------------
     arcane-redirect:
-      rule: "Host(`homelab.bluewave.work`) && (Path(`/arcane`) || PathPrefix(`/arcane/`))"
+      rule: "Host(`homelab.example.com`) && (Path(`/arcane`) || PathPrefix(`/arcane/`))"
       entryPoints: ["websecure"]
       middlewares: ["to-arcane-domain"]
       service: "noop@internal"
@@ -84,7 +84,7 @@ http:
     # Arcane Docker Management Cockpit (VM1: zap-vps)
     # ----------------------------------------------------
     arcane:
-      rule: "Host(`arcane.bluewave.work`)"
+      rule: "Host(`arcane.example.com`)"
       entryPoints: ["websecure"]
       middlewares: ["app-fail2ban", "security-headers", "compression"]
       service: "arcane-svc"
@@ -95,7 +95,7 @@ http:
     # LiteLLM AI Gateway (VM2: oci01-flex)
     # ----------------------------------------------------
     litellm:
-      rule: "Host(`litellm.bluewave.work`)"
+      rule: "Host(`litellm.example.com`)"
       entryPoints: ["websecure"]
       middlewares: ["app-fail2ban", "security-headers"]
       service: "litellm-svc"
@@ -106,7 +106,7 @@ http:
     # Open-WebUI (VM2: oci01-flex)
     # ----------------------------------------------------
     open-webui:
-      rule: "Host(`open-webui.bluewave.work`)"
+      rule: "Host(`open-webui.example.com`)"
       entryPoints: ["websecure"]
       middlewares: ["app-fail2ban", "security-headers", "compression"]
       service: "openwebui-svc"
@@ -117,7 +117,7 @@ http:
     # LiteLLM Helper (VM2: oci01-flex)
     # ----------------------------------------------------
     litellm-helper:
-      rule: "Host(`litellm-helper.bluewave.work`)"
+      rule: "Host(`litellm-helper.example.com`)"
       entryPoints: ["websecure"]
       middlewares: ["app-fail2ban", "security-headers"]
       service: "litellmhelper-svc"
@@ -128,7 +128,7 @@ http:
     # Seafile (VM1: zap-vps)
     # ----------------------------------------------------
     seafile:
-      rule: "Host(`mycloud.bluewave.work`) || Host(`seafile.bluewave.work`)"
+      rule: "Host(`mycloud.example.com`) || Host(`seafile.example.com`)"
       entryPoints: ["websecure"]
       middlewares: ["app-fail2ban", "security-headers"]
       service: "seafile-svc"
@@ -139,7 +139,7 @@ http:
     # Immich Photo Library (VM1: zap-vps)
     # ----------------------------------------------------
     immich:
-      rule: "Host(`photos.bluewave.work`)"
+      rule: "Host(`photos.example.com`)"
       entryPoints: ["websecure"]
       middlewares: ["app-fail2ban", "security-headers"]
       service: "immich-svc"

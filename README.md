@@ -9,7 +9,7 @@ Enterprise-grade, automated edge reverse proxy and authentication gateway for th
 ```
                                   [ Public Internet Ingress ]
                                                │
-                              https://*.bluewave.work (Ports 80/443)
+                              https://*.example.com (Ports 80/443)
                                                │
                                                ▼
                               ┌──────────────────────────────────┐
@@ -19,7 +19,7 @@ Enterprise-grade, automated edge reverse proxy and authentication gateway for th
                               │  - Fail2Ban Brute-Force Defense  │
                               └────────────────┬─────────────────┘
                                                │
-                              Is User Authenticated on *.bluewave.work?
+                              Is User Authenticated on *.example.com?
                                                │
                       ┌────────────────────────┴────────────────────────┐
                       │ (ForwardAuth)                                   │
@@ -53,7 +53,7 @@ Persistent state is stored cleanly outside the Git repository in the standard ho
 
 ## 🚀 Deployment via Arcane GitOps
 
-1. Open **Arcane Cockpit** at [`https://arcane.bluewave.work`](https://arcane.bluewave.work).
+1. Open **Arcane Cockpit** at [`https://arcane.example.com`](https://arcane.example.com).
 2. Click **Projects** $\rightarrow$ **New Project**.
 3. Set:
    * **Name:** `gateway`
@@ -64,8 +64,8 @@ Persistent state is stored cleanly outside the Git repository in the standard ho
    SYSTEM_USER=mgrsys
    DATA_DIR=/home/mgrsys/DATA
    CLOUDFLARE_API_TOKEN=your_token_here
-   ACME_EMAIL=medzarka@gmail.com
-   ROOT_DOMAIN=bluewave.work
+   ACME_EMAIL=admin@example.com
+   ROOT_DOMAIN=example.com
    ```
 5. Click **Deploy**.
 
@@ -88,7 +88,7 @@ users:
   admin:
     displayname: "Homelab Administrator"
     password: "$argon2id$v=19$m=65536,t=3,p=4$..." # Paste hash here
-    email: "medzarka@gmail.com"
+    email: "admin@example.com"
     groups:
       - admins
       - devops
@@ -96,7 +96,7 @@ users:
   john:
     displayname: "John Doe"
     password: "$argon2id$v=19$m=65536,t=3,p=4$..."
-    email: "john@bluewave.work"
+    email: "john@example.com"
     groups:
       - users
       - family
@@ -113,21 +113,21 @@ access_control:
   default_policy: "deny"
   rules:
     # --- Public Bypass (APIs & Static Assets) ---
-    - domain: "auth.bluewave.work"
+    - domain: "auth.example.com"
       policy: "bypass"
 
     # --- Only 'admins' can access Traefik, Arcane, and Cluster Metrics (2FA) ---
     - domain:
-        - "traefik.bluewave.work"
-        - "metrics.bluewave.work"
-        - "arcane.bluewave.work"
+        - "traefik.example.com"
+        - "metrics.example.com"
+        - "arcane.example.com"
       subject:
         - "group:admins"
       policy: "two_factor"
 
     # --- Only 'devops' and 'admins' can access container logs ---
     - domain:
-        - "logs.bluewave.work"
+        - "logs.example.com"
       subject:
         - "group:admins"
         - "group:devops"
@@ -135,8 +135,8 @@ access_control:
 
     # --- All logged-in users (admins, users, family) can access Homepage ---
     - domain:
-        - "homelab.bluewave.work"
-        - "hub.bluewave.work"
+        - "homelab.example.com"
+        - "hub.example.com"
       subject:
         - "group:admins"
         - "group:users"
