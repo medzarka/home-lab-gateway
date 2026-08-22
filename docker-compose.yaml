@@ -1,7 +1,7 @@
 services:
 
   # ========================================================
-  # STORAGE HELPER (Automated Directory & Permissions Guard)
+  # STORAGE & CONFIG HELPER (Automated Domain & Permissions Guard)
   # ========================================================
   storage-init:
     image: alpine:latest
@@ -9,17 +9,28 @@ services:
     user: "0:0"
     restart: unless-stopped
     network_mode: none
+    environment:
+      - ROOT_DOMAIN=${ROOT_DOMAIN:-example.com}
     volumes:
       - ${DATA_DIR:-/home/mgrsys/DATA}/gateway/data:/data
+      - ${DATA_DIR:-/home/mgrsys/DATA}/gateway/dynamic_runtime:/dynamic_runtime
+      - ./authelia:/authelia_src:ro
+      - ./dynamic:/dynamic_src:ro
     entrypoint: ["/bin/sh", "-c"]
     command:
       - |
         echo ">>> [Storage Init] Setting up directories and permissions..."
-        mkdir -p /data/traefik/logs /data/authelia
+        mkdir -p /data/traefik/logs /data/authelia/config /data/authelia/data /dynamic_runtime
         touch /data/traefik/acme.json /data/traefik/logs/access.log
-        chmod -R 775 /data
+        chmod -R 775 /data /dynamic_runtime
         chmod 600 /data/traefik/acme.json
-        echo ">>> [Storage Init] Permissions applied. Storage guard active."
+
+        echo ">>> [Storage Init] Interpolating ROOT_DOMAIN ($$ROOT_DOMAIN) from .env into runtime configs..."
+        sed "s|example.com|$$ROOT_DOMAIN|g" /authelia_src/configuration.yml > /data/authelia/config/configuration.yml
+        sed "s|example.com|$$ROOT_DOMAIN|g" /dynamic_src/middleware.yaml > /dynamic_runtime/middleware.yaml
+        cp -f /dynamic_src/routes.yaml /dynamic_runtime/routes.yaml
+
+        echo ">>> [Storage Init] Runtime configs generated. Storage guard active."
         sleep infinity
 
   # ========================================================
@@ -67,17 +78,12 @@ services:
     container_name: authelia
     restart: unless-stopped
     volumes:
-      - ./authelia/configuration.yml:/config/configuration.yml:ro
+      - ${DATA_DIR:-/home/mgrsys/DATA}/gateway/data/authelia/config/configuration.yml:/config/configuration.yml:ro
       - ./authelia/users_database.yml:/config/users_database.yml:ro
       - ./authelia/assets:/config/assets:ro
-      - ${DATA_DIR:-/home/mgrsys/DATA}/gateway/data/authelia:/config/data
+      - ${DATA_DIR:-/home/mgrsys/DATA}/gateway/data/authelia/data:/config/data
     environment:
       - TZ=${TZ:-UTC}
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.middlewares.authelia-sso.forwardauth.address=http://authelia:9091/api/verify?rd=https%3A%2F%2Fauth.${ROOT_DOMAIN:-example.com}%2F"
-      - "traefik.http.middlewares.authelia-sso.forwardauth.trustForwardHeader=true"
-      - "traefik.http.middlewares.authelia-sso.forwardauth.authResponseHeaders=Remote-User,Remote-Groups,Remote-Name,Remote-Email"
     networks:
       - shared_net
       - homelab_swarm_net
@@ -115,7 +121,7 @@ services:
     volumes:
       - ${DATA_DIR:-/home/mgrsys/DATA}/gateway/data/traefik/acme.json:/etc/traefik/acme.json
       - ${DATA_DIR:-/home/mgrsys/DATA}/gateway/data/traefik/logs:/var/log/traefik
-      - ./dynamic:/etc/traefik/dynamic:ro
+      - ${DATA_DIR:-/home/mgrsys/DATA}/gateway/dynamic_runtime:/etc/traefik/dynamic:ro
     extra_hosts:
       - "host.docker.internal:host-gateway"
       - "worker-oci01:${TS_VM2_OCI01:-127.0.0.1}"
