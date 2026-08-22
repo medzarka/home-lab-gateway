@@ -63,9 +63,6 @@ services:
     networks:
       - shared_net
       - homelab_swarm_net
-    depends_on:
-      init-volumes:
-        condition: service_completed_successfully
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:9091/api/health"]
       interval: 30s
