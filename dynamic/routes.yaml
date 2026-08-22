@@ -1,25 +1,47 @@
 http:
   routers:
     # ----------------------------------------------------
-    # GoAccess WebSocket Live Feed (Real-Time Metrics Stream)
+    # Homepage - Unified Homelab Portal & Service Cockpit
     # ----------------------------------------------------
-    traffic-ws:
-      rule: "Host(`traffic.bluewave.work`) && (PathPrefix(`/ws`) || Header(`Upgrade`, `websocket`))"
+    homepage:
+      rule: "Host(`homelab.bluewave.work`) || Host(`hub.bluewave.work`)"
       entryPoints: ["websecure"]
-      service: "traffic-ws-svc"
-      priority: 50
+      middlewares: ["app-fail2ban", "security-headers", "compression"]
+      service: "homepage-svc"
+      priority: 20
       tls:
         certResolver: "cloudflare"
 
     # ----------------------------------------------------
-    # GoAccess HTML Web Report
+    # Beszel - Cluster Telemetry & Bandwidth Metrics
     # ----------------------------------------------------
-    traffic:
-      rule: "Host(`traffic.bluewave.work`)"
+    beszel:
+      rule: "Host(`metrics.bluewave.work`) || Host(`beszel.bluewave.work`)"
       entryPoints: ["websecure"]
-      middlewares: ["traefik-auth", "security-headers"]
-      service: "traffic-web-svc"
-      priority: 10
+      middlewares: ["app-fail2ban", "security-headers", "compression"]
+      service: "beszel-svc"
+      tls:
+        certResolver: "cloudflare"
+
+    # ----------------------------------------------------
+    # Dozzle - Centralized Multi-Node Container Log Viewer
+    # ----------------------------------------------------
+    dozzle:
+      rule: "Host(`logs.bluewave.work`)"
+      entryPoints: ["websecure"]
+      middlewares: ["traefik-auth", "app-fail2ban", "security-headers"]
+      service: "dozzle-svc"
+      tls:
+        certResolver: "cloudflare"
+
+    # ----------------------------------------------------
+    # Uptime Kuma - Multi-Node Status & Health Alerts
+    # ----------------------------------------------------
+    uptime-kuma:
+      rule: "Host(`status.bluewave.work`)"
+      entryPoints: ["websecure"]
+      middlewares: ["app-fail2ban", "security-headers", "compression"]
+      service: "uptimekuma-svc"
       tls:
         certResolver: "cloudflare"
 
@@ -43,18 +65,6 @@ http:
       middlewares: ["to-arcane-domain"]
       service: "noop@internal"
       priority: 100
-      tls:
-        certResolver: "cloudflare"
-
-    # ----------------------------------------------------
-    # Homelab Control Portal (SQLite Dashboard on Orange Pi)
-    # ----------------------------------------------------
-    homelab-dashboard:
-      rule: "Host(`homelab.bluewave.work`)"
-      entryPoints: ["websecure"]
-      middlewares: ["app-fail2ban", "security-headers", "compression"]
-      service: "dashboard-svc"
-      priority: 10
       tls:
         certResolver: "cloudflare"
 
@@ -129,18 +139,22 @@ http:
       loadBalancer:
         servers:
           - url: "http://127.0.0.1:80"
-    traffic-web-svc:
+    homepage-svc:
       loadBalancer:
         servers:
-          - url: "http://traffic_web:80"
-    traffic-ws-svc:
+          - url: "http://homepage:3000"
+    beszel-svc:
       loadBalancer:
         servers:
-          - url: "http://goaccess:443"
-    dashboard-svc:
+          - url: "http://beszel:8090"
+    dozzle-svc:
       loadBalancer:
         servers:
-          - url: "http://100.71.154.78:8085"
+          - url: "http://dozzle:8080"
+    uptimekuma-svc:
+      loadBalancer:
+        servers:
+          - url: "http://uptime-kuma:3001"
     arcane-svc:
       loadBalancer:
         servers:

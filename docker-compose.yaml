@@ -14,8 +14,8 @@ services:
     entrypoint: ["/bin/sh", "-c"]
     command:
       - |
-        echo ">>> [Init] Initializing Traefik and GoAccess directories..."
-        mkdir -p /data/volumes/traefik/dynamic /data/volumes/traefik/logs /data/volumes/traefik/html
+        echo ">>> [Init] Initializing Traefik directories and cert storage..."
+        mkdir -p /data/volumes/traefik/dynamic /data/volumes/traefik/logs
         touch /data/volumes/traefik/acme.json /data/volumes/traefik/logs/access.log
         chmod 600 /data/volumes/traefik/acme.json
         chmod -R 775 /data/volumes
@@ -119,51 +119,6 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
-
-  # ========================================================
-  # GOACCESS LOG ANALYZER (Real-Time Metrics Engine)
-  # ========================================================
-  goaccess:
-    image: allinurl/goaccess:latest
-    container_name: gateway_goaccess
-    restart: unless-stopped
-    environment:
-      - TZ=${TZ:-UTC}
-    command:
-      - "/var/log/traefik/access.log"
-      - "-o"
-      - "/var/www/html/index.html"
-      - "--log-format=%h %^ %e [%d:%t %^] \"%r\" %s %b \"%R\" \"%u\" %^ \"%v\" %^ %Tms"
-      - "--date-format=%d/%b/%Y"
-      - "--time-format=%T"
-      - "--real-time-html"
-      - "--ws-url=wss://traffic.${ROOT_DOMAIN:-bluewave.work}:443/ws"
-      - "--origin=https://traffic.${ROOT_DOMAIN:-bluewave.work}"
-      - "--port=443"
-      - "--addr=0.0.0.0"
-    volumes:
-      - ${GATEWAY_HOME:-/srv/data/gateway}/volumes/traefik/logs:/var/log/traefik:ro
-      - ${GATEWAY_HOME:-/srv/data/gateway}/volumes/traefik/html:/var/www/html
-    networks:
-      - shared_net
-    depends_on:
-      init-volumes:
-        condition: service_completed_successfully
-
-  # ========================================================
-  # GOACCESS WEB SERVER (HTML Report Server)
-  # ========================================================
-  traffic-web:
-    image: nginx:alpine
-    container_name: gateway_traffic_web
-    restart: unless-stopped
-    volumes:
-      - ${GATEWAY_HOME:-/srv/data/gateway}/volumes/traefik/html:/usr/share/nginx/html:ro
-    networks:
-      - shared_net
-    depends_on:
-      init-volumes:
-        condition: service_completed_successfully
 
 networks:
   homelab_swarm_net:
