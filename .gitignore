@@ -1,4 +1,18 @@
+# Secrets and Environment
 .env
-.env.local
-.DS_Store
+*.env.local
+
+# Persistent Data Directories
+data/
+*/data/
+
+# Runtime Files & SSL Keys
+acme.json
+*.json
+*.sqlite3
 *.log
+notification.txt
+
+# System Files
+.DS_Store
+*.swp

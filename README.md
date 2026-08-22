@@ -1,107 +1,93 @@
-# 🌐 Homelab Ingress Gateway (Traefik v3 Edge Router)
+# 🛡️ Homelab Edge Gateway (Traefik v3 + Authelia SSO + Socket Proxy + Fail2Ban)
 
-The **Homelab Gateway** is the centralized **Edge Ingress Controller** deployed on the primary Cloud VPS (**`zap-vps`**). It manages SSL certificate provisioning, traffic termination, rate limiting, and secure reverse proxy routing across all cluster nodes.
+Enterprise-grade, automated edge reverse proxy and authentication gateway for the cluster.
 
 ---
 
-## 🏛️ Architecture
+## 🏛️ Ingress Architecture & Components
 
 ```
-                                 [ Public Internet ]
-                                         │
-                             https://*.bluewave.work
-                                  (Ports 80/443)
-                                         ▼
-                 ┌───────────────────────────────────────────────┐
-                 │                VM 1: zap-vps                  │
-                 │                                               │
-                 │   ┌───────────────────────────────────────┐   │
-                 │   │         TRAEFIK V3 (Edge Ingress)     │   │
-                 │   │  * Wildcard SSL (*.bluewave.work)     │   │
-                 │   │  * Read-Only Docker Socket Proxy      │   │
-                 │   │  * Security Headers & Rate Limiting   │   │
-                 │   └───────┬───────────────────────┬───────┘   │
-                 │           │                       │           │
-                 │           ▼                       ▼           │
-                 │       [ Arcane ]              [ Seafile ]     │
-                 │       (:3552)                 (:80)           │
-                 └───────────┼───────────────────────┼───────────┘
-                             │                       │
-                (Encrypted Mesh Overlay: homelab_swarm_net / Tailscale)
-                             │                       │
-              ┌──────────────┴────┐            ┌─────┴─────────────┐
-              │  VM 2: oci01-flex │            │VM 3: orangepi5plus│
-              │                   │            │                   │
-              │  * LiteLLM AI     │            │* Homelab Dashboard│
-              │  * Open-WebUI     │            │* Media Stack      │
-              │  (No Traefik)     │            │(No Traefik)       │
-              └───────────────────┘            └───────────────────┘
+                                  [ Public Internet Ingress ]
+                                               │
+                              https://*.bluewave.work (Ports 80/443)
+                                               │
+                                               ▼
+                              ┌──────────────────────────────────┐
+                              │       TRAEFIK V3.1 (zap-vps)     │
+                              │  - Wildcard TLS (Cloudflare DNS) │
+                              │  - Automated Port 80 -> 443      │
+                              │  - Fail2Ban Brute-Force Defense  │
+                              └────────────────┬─────────────────┘
+                                               │
+                              Is User Authenticated on *.bluewave.work?
+                                               │
+                      ┌────────────────────────┴────────────────────────┐
+                      │ (ForwardAuth)                                   │
+                      ▼                                                 ▼
+          ┌───────────────────────┐                         ┌───────────────────────┐
+          │  AUTHELIA SSO (9091)  │                         │    BACKEND ROUTING    │
+          │  - Visual Login Page  │                         │  - Homepage (3000)    │
+          │  - 2FA TOTP / WebAuthn│                         │  - Dozzle Logs (8080) │
+          │  - Argon2id Passwords │                         │  - Beszel Hub (8090)  │
+          │  - Session Cookies    │                         │  - Remote Swarm Nodes │
+          └───────────────────────┘                         └───────────────────────┘
 ```
 
 ---
 
-## 🚀 Key Features
+## 💾 Standard Data & Storage Template
 
-1. **Traefik v3.1 Ingress Engine:**
-   - **Automated Wildcard SSL:** Provisions and auto-renews Let's Encrypt wildcard certificates (`*.bluewave.work` and `bluewave.work`) via Cloudflare DNS-01 ACME challenges.
-   - **Automatic HTTPS Redirection:** All port 80 HTTP requests are automatically upgraded to port 443 HTTPS.
-   - **Docker Swarm & File Discovery:** Discovers services via Swarm container labels and file-based dynamic routes (`dynamic/`).
-2. **Authelia Single Sign-On (SSO) & 2FA:**
-   - Centralized authentication portal at `https://auth.bluewave.work` with 1FA/2FA access control policies and ForwardAuth integration.
-3. **Socket Security Hardening:**
-   - Uses `tecnativa/docker-socket-proxy` to isolate the host Docker daemon with a read-only API (`tcp://socket-proxy:2375`).
-4. **Fail2Ban In-Memory Defense (`tomMoulard/fail2ban`):**
-   - Automatically bans malicious scanners and brute-force IPs after 5 failed requests while whitelisting the Tailscale mesh.
-5. **OWASP Security Middleware:**
-   - Enforces HSTS, XSS protection, anti-clickjacking, and brute-force rate-limiting (100 req/s).
-
----
-
-## 📁 Repository Structure
+Persistent state is stored cleanly outside the Git repository in the standard homelab hierarchy:
 
 ```
-homelab-gateway/
-├── docker-compose.yaml        # Traefik v3 + Socket Proxy stack
-├── .env.example               # Clean configuration template
-└── dynamic/
-    ├── middleware.yaml        # HSTS, OWASP headers, rate limiting & /arcane shortcut
-    └── routes.yaml            # Dynamic routing to local & Tailscale mesh services
+/home/${SYSTEM_USER}/DATA/gateway/data/
+├── traefik/
+│   ├── acme.json              # Let's Encrypt Wildcard SSL certificate store (0600)
+│   └── logs/                  # Traefik access & error logs
+└── authelia/
+    ├── db.sqlite3             # Authelia user 2FA and session database
+    └── notification.txt       # Local identity verification codes
 ```
 
 ---
 
-## 🔒 Activating Wildcard SSL with Cloudflare DNS
+## 🚀 Deployment via Arcane GitOps
 
-### 1. Cloudflare API Token Prerequisites
-In your [Cloudflare Dashboard](https://dash.cloudflare.com/profile/api-tokens), create an API token with:
-- `Zone -> DNS -> Edit`
-- `Zone -> Zone -> Read`
-- Target: Specific zone -> `bluewave.work`
+1. Open **Arcane Cockpit** at [`https://arcane.bluewave.work`](https://arcane.bluewave.work).
+2. Click **Projects** $\rightarrow$ **New Project**.
+3. Set:
+   * **Name:** `gateway`
+   * **Git Repository:** `https://github.com/medzarka/home-lab-gateway.git`
+   * **Branch:** `main`
+4. Add Environment Variables (from `.env.example`):
+   ```env
+   SYSTEM_USER=mgrsys
+   DATA_DIR=/home/mgrsys/DATA
+   CLOUDFLARE_API_TOKEN=your_token_here
+   ACME_EMAIL=medzarka@gmail.com
+   ROOT_DOMAIN=bluewave.work
+   ```
+5. Click **Deploy**.
 
-### 2. Configure `.env`
+---
+
+## 🔑 Authelia User & Password Management
+
+All credentials are encrypted with **Argon2id** and stored in [`authelia/users_database.yml`](authelia/users_database.yml).
+
+### Generate a New Password Hash:
 ```bash
-cp .env.example .env
-# Edit .env and enter your CLOUDFLARE_API_TOKEN and ACME_EMAIL
+docker run --rm authelia/authelia:latest authelia crypto hash generate argon2 --password 'YourNewPassword'
 ```
 
-### 3. Set Up Cloudflare Wildcard DNS
-In Cloudflare DNS, add an **`A`** record:
-- **Name:** `*` *(and `@`)*
-- **IPv4 Address:** `<YOUR_VPS_PUBLIC_IP>` (e.g. `147.189.174.15`)
-- **Proxy Status:** Proxied (Orange Cloud) or DNS Only
-
----
-
-## ⚙️ Deployment via Arcane / Docker Compose
-
-You can deploy the Gateway stack directly in **Arcane**:
-1. Open **Arcane** -> **Projects** -> **+ New Project**.
-2. Name: `homelab-gateway`.
-3. Environment: `Local Docker (zap-vps)`.
-4. Connect this Git repository: `https://github.com/medzarka/home-lab-gateway.git`.
-5. Enter your `.env` variables and click **Deploy**.
-
-Or via CLI on `zap-vps`:
-```bash
-docker compose up -d
+### Update User in `authelia/users_database.yml`:
+```yaml
+users:
+  admin:
+    displayname: "Homelab Administrator"
+    password: "$argon2id$v=19$m=65536,t=3,p=4$..." # Paste hash here
+    email: "medzarka@gmail.com"
+    groups:
+      - admins
 ```
+Authelia watches file changes and reloads credentials **instantly with zero downtime**.

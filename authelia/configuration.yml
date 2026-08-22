@@ -5,11 +5,19 @@
 
 server:
   address: "tcp://0.0.0.0:9091"
+  buffers:
+    read: 65536
+    write: 65536
 
 log:
   level: "info"
 
 theme: "dark"
+
+regulation:
+  max_retries: 10
+  find_time: "2m"
+  ban_time: "5m"
 
 identity_validation:
   reset_password:
@@ -32,14 +40,19 @@ session:
       authelia_url: "https://auth.bluewave.work"
       default_redirection_url: "https://homelab.bluewave.work"
 
+totp:
+  issuer: "bluewave.work"
+  period: 30
+  skew: 1
+
 storage:
   encryption_key: "74f4ff3849ef73c3f3545cfd214a58bf0ed376250da6cdb32e458bf5d27e33aa"
   local:
-    path: "/config/db.sqlite3"
+    path: "/config/data/db.sqlite3"
 
 notifier:
   filesystem:
-    filename: "/config/notification.txt"
+    filename: "/config/data/notification.txt"
 
 access_control:
   default_policy: "deny"

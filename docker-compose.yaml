@@ -1,6 +1,27 @@
 services:
 
   # ========================================================
+  # INITIALIZATION SERVICE (Automated Host Storage Setup)
+  # ========================================================
+  init-volumes:
+    image: alpine:latest
+    container_name: gateway_init_volumes
+    user: "0:0"
+    restart: "no"
+    network_mode: none
+    volumes:
+      - ${DATA_DIR:-/home/mgrsys/DATA}/gateway/data:/data
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        echo ">>> [Init] Initializing Traefik and Authelia persistent data directories..."
+        mkdir -p /data/traefik/logs /data/authelia
+        touch /data/traefik/acme.json /data/traefik/logs/access.log
+        chmod 600 /data/traefik/acme.json
+        chmod -R 775 /data
+        echo ">>> [Init] Gateway storage initialized successfully!"
+
+  # ========================================================
   # DOCKER SOCKET PROXY (Read-Only Secure Socket Isolation)
   # ========================================================
   socket-proxy:
@@ -45,12 +66,17 @@ services:
     container_name: authelia
     restart: unless-stopped
     volumes:
-      - ./authelia:/config
+      - ./authelia/configuration.yml:/config/configuration.yml:ro
+      - ./authelia/users_database.yml:/config/users_database.yml:ro
+      - ${DATA_DIR:-/home/mgrsys/DATA}/gateway/data/authelia:/config/data
     environment:
       - TZ=${TZ:-UTC}
     networks:
       - shared_net
       - homelab_swarm_net
+    depends_on:
+      init-volumes:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:9091/api/health"]
       interval: 30s
@@ -83,9 +109,9 @@ services:
       - ACME_EMAIL=${ACME_EMAIL}
       - DOCKER_API_VERSION=1.45
     volumes:
-      - ./acme.json:/etc/traefik/acme.json
+      - ${DATA_DIR:-/home/mgrsys/DATA}/gateway/data/traefik/acme.json:/etc/traefik/acme.json
+      - ${DATA_DIR:-/home/mgrsys/DATA}/gateway/data/traefik/logs:/var/log/traefik
       - ./dynamic:/etc/traefik/dynamic:ro
-      - ./logs:/var/log/traefik
     command:
       - "--global.checknewversion=false"
       - "--global.sendanonymoususage=false"
@@ -114,6 +140,8 @@ services:
       - shared_net
       - socket_proxy
     depends_on:
+      init-volumes:
+        condition: service_completed_successfully
       socket-proxy:
         condition: service_healthy
       authelia:
