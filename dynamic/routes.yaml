@@ -136,7 +136,7 @@ http:
     traffic-ws-svc:
       loadBalancer:
         servers:
-          - url: "http://goaccess:7890"
+          - url: "http://goaccess:443"
     dashboard-svc:
       loadBalancer:
         servers:

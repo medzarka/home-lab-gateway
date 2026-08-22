@@ -135,9 +135,9 @@ services:
       - "/var/www/html/index.html"
       - "--log-format=COMMON"
       - "--real-time-html"
-      - "--ws-url=wss://traffic.${ROOT_DOMAIN:-bluewave.work}/ws"
+      - "--ws-url=wss://traffic.${ROOT_DOMAIN:-bluewave.work}:443/ws"
       - "--origin=https://traffic.${ROOT_DOMAIN:-bluewave.work}"
-      - "--port=7890"
+      - "--port=443"
       - "--addr=0.0.0.0"
     volumes:
       - ${GATEWAY_HOME:-/srv/data/gateway}/volumes/traefik/logs:/var/log/traefik:ro
