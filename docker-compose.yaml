@@ -13,22 +13,20 @@ services:
       - ROOT_DOMAIN=${ROOT_DOMAIN:-example.com}
     volumes:
       - ${DATA_DIR:-/home/mgrsys/DATA}/gateway/data:/data
-      - ${DATA_DIR:-/home/mgrsys/DATA}/gateway/dynamic_runtime:/dynamic_runtime
-      - ./authelia:/authelia_src:ro
-      - ./dynamic:/dynamic_src:ro
+      - ./authelia:/authelia_src
+      - ./dynamic:/dynamic_src
     entrypoint: ["/bin/sh", "-c"]
     command:
       - |
         echo ">>> [Storage Init] Setting up directories and permissions..."
-        mkdir -p /data/traefik/logs /data/authelia/config /data/authelia/data /dynamic_runtime
+        mkdir -p /data/traefik/logs /data/authelia
         touch /data/traefik/acme.json /data/traefik/logs/access.log
-        chmod -R 775 /data /dynamic_runtime
+        chmod -R 775 /data
         chmod 600 /data/traefik/acme.json
 
         echo ">>> [Storage Init] Interpolating ROOT_DOMAIN ($$ROOT_DOMAIN) from .env into runtime configs..."
-        sed "s|example.com|$$ROOT_DOMAIN|g" /authelia_src/configuration.yml > /data/authelia/config/configuration.yml
-        sed "s|example.com|$$ROOT_DOMAIN|g" /dynamic_src/middleware.yaml > /dynamic_runtime/middleware.yaml
-        cp -f /dynamic_src/routes.yaml /dynamic_runtime/routes.yaml
+        sed -i "s|example.com|$$ROOT_DOMAIN|g" /authelia_src/configuration.yml 2>/dev/null || true
+        sed -i "s|example.com|$$ROOT_DOMAIN|g" /dynamic_src/middleware.yaml 2>/dev/null || true
 
         echo ">>> [Storage Init] Runtime configs generated. Storage guard active."
         sleep infinity
@@ -78,10 +76,10 @@ services:
     container_name: authelia
     restart: unless-stopped
     volumes:
-      - ${DATA_DIR:-/home/mgrsys/DATA}/gateway/data/authelia/config/configuration.yml:/config/configuration.yml:ro
+      - ./authelia/configuration.yml:/config/configuration.yml:ro
       - ./authelia/users_database.yml:/config/users_database.yml:ro
       - ./authelia/assets:/config/assets:ro
-      - ${DATA_DIR:-/home/mgrsys/DATA}/gateway/data/authelia/data:/config/data
+      - ${DATA_DIR:-/home/mgrsys/DATA}/gateway/data/authelia:/config/data
     environment:
       - TZ=${TZ:-UTC}
     networks:
@@ -121,7 +119,7 @@ services:
     volumes:
       - ${DATA_DIR:-/home/mgrsys/DATA}/gateway/data/traefik/acme.json:/etc/traefik/acme.json
       - ${DATA_DIR:-/home/mgrsys/DATA}/gateway/data/traefik/logs:/var/log/traefik
-      - ${DATA_DIR:-/home/mgrsys/DATA}/gateway/dynamic_runtime:/etc/traefik/dynamic:ro
+      - ./dynamic:/etc/traefik/dynamic:ro
     extra_hosts:
       - "host.docker.internal:host-gateway"
       - "worker-oci01:${TS_VM2_OCI01:-127.0.0.1}"
