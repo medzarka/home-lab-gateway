@@ -17,8 +17,8 @@ services:
         echo ">>> [Init] Initializing Traefik and Authelia persistent data directories..."
         mkdir -p /data/traefik/logs /data/authelia
         touch /data/traefik/acme.json /data/traefik/logs/access.log
-        chmod 600 /data/traefik/acme.json
         chmod -R 775 /data
+        chmod 600 /data/traefik/acme.json
         echo ">>> [Init] Gateway storage initialized successfully!"
 
   # ========================================================
