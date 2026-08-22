@@ -9,7 +9,8 @@ http:
       middlewares: ["to-arcane-domain"]
       service: "noop@internal"
       priority: 100
-      tls: {}
+      tls:
+        certResolver: "cloudflare"
 
     # ----------------------------------------------------
     # Homelab Control Portal (SQLite Dashboard on Orange Pi)
@@ -20,17 +21,19 @@ http:
       middlewares: ["security-headers", "compression"]
       service: "dashboard-svc"
       priority: 10
-      tls: {}
+      tls:
+        certResolver: "cloudflare"
 
     # ----------------------------------------------------
-    # Arcane Docker Management Cockpit
+    # Arcane Docker Management Cockpit (VM1: zap-vps)
     # ----------------------------------------------------
     arcane:
       rule: "Host(`arcane.bluewave.work`)"
       entryPoints: ["websecure"]
       middlewares: ["security-headers", "compression"]
       service: "arcane-svc"
-      tls: {}
+      tls:
+        certResolver: "cloudflare"
 
     # ----------------------------------------------------
     # LiteLLM AI Gateway (VM2: oci01-flex)
@@ -40,7 +43,8 @@ http:
       entryPoints: ["websecure"]
       middlewares: ["security-headers"]
       service: "litellm-svc"
-      tls: {}
+      tls:
+        certResolver: "cloudflare"
 
     # ----------------------------------------------------
     # Open-WebUI (VM2: oci01-flex)
@@ -50,7 +54,8 @@ http:
       entryPoints: ["websecure"]
       middlewares: ["security-headers", "compression"]
       service: "openwebui-svc"
-      tls: {}
+      tls:
+        certResolver: "cloudflare"
 
     # ----------------------------------------------------
     # LiteLLM Helper (VM2: oci01-flex)
@@ -60,7 +65,8 @@ http:
       entryPoints: ["websecure"]
       middlewares: ["security-headers"]
       service: "litellmhelper-svc"
-      tls: {}
+      tls:
+        certResolver: "cloudflare"
 
     # ----------------------------------------------------
     # Seafile (VM1: zap-vps)
@@ -70,7 +76,8 @@ http:
       entryPoints: ["websecure"]
       middlewares: ["security-headers"]
       service: "seafile-svc"
-      tls: {}
+      tls:
+        certResolver: "cloudflare"
 
     # ----------------------------------------------------
     # Immich Photo Library (VM1: zap-vps)
@@ -80,7 +87,8 @@ http:
       entryPoints: ["websecure"]
       middlewares: ["security-headers"]
       service: "immich-svc"
-      tls: {}
+      tls:
+        certResolver: "cloudflare"
 
   services:
     noop:
@@ -94,7 +102,7 @@ http:
     arcane-svc:
       loadBalancer:
         servers:
-          - url: "http://arcane:3552"
+          - url: "http://100.119.246.120:3552"
     litellm-svc:
       loadBalancer:
         servers:
