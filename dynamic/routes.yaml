@@ -6,7 +6,7 @@ http:
     traefik-dashboard:
       rule: "Host(`traefik.bluewave.work`)"
       entryPoints: ["websecure"]
-      middlewares: ["traefik-auth", "security-headers", "compression"]
+      middlewares: ["traefik-auth", "app-fail2ban", "security-headers", "compression"]
       service: "api@internal"
       tls:
         certResolver: "cloudflare"
@@ -29,7 +29,7 @@ http:
     homelab-dashboard:
       rule: "Host(`homelab.bluewave.work`)"
       entryPoints: ["websecure"]
-      middlewares: ["security-headers", "compression"]
+      middlewares: ["app-fail2ban", "security-headers", "compression"]
       service: "dashboard-svc"
       priority: 10
       tls:
@@ -41,7 +41,7 @@ http:
     arcane:
       rule: "Host(`arcane.bluewave.work`)"
       entryPoints: ["websecure"]
-      middlewares: ["security-headers", "compression"]
+      middlewares: ["app-fail2ban", "security-headers", "compression"]
       service: "arcane-svc"
       tls:
         certResolver: "cloudflare"
@@ -52,7 +52,7 @@ http:
     litellm:
       rule: "Host(`litellm.bluewave.work`)"
       entryPoints: ["websecure"]
-      middlewares: ["security-headers"]
+      middlewares: ["app-fail2ban", "security-headers"]
       service: "litellm-svc"
       tls:
         certResolver: "cloudflare"
@@ -63,7 +63,7 @@ http:
     open-webui:
       rule: "Host(`open-webui.bluewave.work`)"
       entryPoints: ["websecure"]
-      middlewares: ["security-headers", "compression"]
+      middlewares: ["app-fail2ban", "security-headers", "compression"]
       service: "openwebui-svc"
       tls:
         certResolver: "cloudflare"
@@ -74,7 +74,7 @@ http:
     litellm-helper:
       rule: "Host(`litellm-helper.bluewave.work`)"
       entryPoints: ["websecure"]
-      middlewares: ["security-headers"]
+      middlewares: ["app-fail2ban", "security-headers"]
       service: "litellmhelper-svc"
       tls:
         certResolver: "cloudflare"
@@ -85,7 +85,7 @@ http:
     seafile:
       rule: "Host(`mycloud.bluewave.work`) || Host(`seafile.bluewave.work`)"
       entryPoints: ["websecure"]
-      middlewares: ["security-headers"]
+      middlewares: ["app-fail2ban", "security-headers"]
       service: "seafile-svc"
       tls:
         certResolver: "cloudflare"
@@ -96,7 +96,7 @@ http:
     immich:
       rule: "Host(`photos.bluewave.work`)"
       entryPoints: ["websecure"]
-      middlewares: ["security-headers"]
+      middlewares: ["app-fail2ban", "security-headers"]
       service: "immich-svc"
       tls:
         certResolver: "cloudflare"

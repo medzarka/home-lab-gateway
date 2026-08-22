@@ -15,7 +15,7 @@ services:
     command:
       - |
         echo ">>> [Init] Initializing Traefik directories and cert storage..."
-        mkdir -p /data/volumes/traefik/dynamic
+        mkdir -p /data/volumes/traefik/dynamic /data/volumes/traefik/logs
         touch /data/volumes/traefik/acme.json
         chmod 600 /data/volumes/traefik/acme.json
         chmod -R 775 /data/volumes
@@ -59,7 +59,7 @@ services:
         max-file: "3"
 
   # ========================================================
-  # TRAEFIK V3 (Edge Ingress & Wildcard SSL Ingress)
+  # TRAEFIK V3 (Edge Ingress & Fail2Ban Protection)
   # ========================================================
   traefik:
     image: traefik:v3.1
@@ -76,6 +76,7 @@ services:
     volumes:
       - ${GATEWAY_HOME:-/srv/data/gateway}/volumes/traefik/acme.json:/etc/traefik/acme.json
       - ./dynamic:/etc/traefik/dynamic:ro
+      - ${GATEWAY_HOME:-/srv/data/gateway}/volumes/traefik/logs:/var/log/traefik
     command:
       - "--global.checknewversion=false"
       - "--global.sendanonymoususage=false"
@@ -98,6 +99,11 @@ services:
       - "--certificatesresolvers.cloudflare.acme.dnschallenge.resolvers=1.1.1.1:53,1.0.0.1:53"
       - "--certificatesresolvers.cloudflare.acme.email=${ACME_EMAIL}"
       - "--certificatesresolvers.cloudflare.acme.storage=/etc/traefik/acme.json"
+      - "--experimental.plugins.fail2ban.modulename=github.com/tomMoulard/fail2ban"
+      - "--experimental.plugins.fail2ban.version=v0.9.0"
+      - "--metrics.prometheus=true"
+      - "--accesslog=true"
+      - "--accesslog.filepath=/var/log/traefik/access.log"
       - "--log.level=INFO"
     networks:
       - homelab_swarm_net
