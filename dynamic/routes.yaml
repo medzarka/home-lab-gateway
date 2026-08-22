@@ -4,7 +4,7 @@ http:
     # Authelia - Centralized SSO Authentication Portal
     # ----------------------------------------------------
     authelia:
-      rule: "HostRegexp(`auth.{domain:.+}`)"
+      rule: "HostRegexp(`^auth\\..+$`)"
       entryPoints: ["websecure"]
       middlewares: ["app-fail2ban", "security-headers", "compression"]
       service: "authelia-svc"
@@ -15,7 +15,7 @@ http:
     # Homepage - Unified Homelab Portal & Service Cockpit (SSO Protected)
     # ----------------------------------------------------
     homepage:
-      rule: "HostRegexp(`(homelab|hub).{domain:.+}`)"
+      rule: "HostRegexp(`^(homelab|hub)\\..+$`)"
       entryPoints: ["websecure"]
       middlewares: ["authelia-sso", "app-fail2ban", "security-headers", "compression"]
       service: "homepage-svc"
@@ -26,7 +26,7 @@ http:
     # Beszel - Cluster Telemetry & Bandwidth Metrics (SSO 2FA Protected)
     # ----------------------------------------------------
     beszel:
-      rule: "HostRegexp(`(metrics|beszel).{domain:.+}`)"
+      rule: "HostRegexp(`^(metrics|beszel)\\..+$`)"
       entryPoints: ["websecure"]
       middlewares: ["authelia-sso", "app-fail2ban", "security-headers", "compression"]
       service: "beszel-svc"
@@ -37,7 +37,7 @@ http:
     # Dozzle - Centralized Multi-Node Container Log Viewer (SSO Protected)
     # ----------------------------------------------------
     dozzle:
-      rule: "HostRegexp(`logs.{domain:.+}`)"
+      rule: "HostRegexp(`^logs\\..+$`)"
       entryPoints: ["websecure"]
       middlewares: ["authelia-sso", "app-fail2ban", "security-headers"]
       service: "dozzle-svc"
@@ -48,7 +48,7 @@ http:
     # Uptime Kuma - Multi-Node Status & Health Alerts
     # ----------------------------------------------------
     uptime-kuma:
-      rule: "HostRegexp(`status.{domain:.+}`)"
+      rule: "HostRegexp(`^status\\..+$`)"
       entryPoints: ["websecure"]
       middlewares: ["app-fail2ban", "security-headers", "compression"]
       service: "uptimekuma-svc"
@@ -59,7 +59,7 @@ http:
     # Traefik Web Dashboard & Visual Monitoring GUI (SSO 2FA Protected)
     # ----------------------------------------------------
     traefik-dashboard:
-      rule: "HostRegexp(`traefik.{domain:.+}`)"
+      rule: "HostRegexp(`^traefik\\..+$`)"
       entryPoints: ["websecure"]
       middlewares: ["authelia-sso", "app-fail2ban", "security-headers", "compression"]
       service: "api@internal"
@@ -70,7 +70,7 @@ http:
     # Shortcut: /arcane -> Dedicated Arcane Domain
     # ----------------------------------------------------
     arcane-redirect:
-      rule: "HostRegexp(`(homelab|hub).{domain:.+}`) && (Path(`/arcane`) || PathPrefix(`/arcane/`))"
+      rule: "HostRegexp(`^(homelab|hub)\\..+$`) && (Path(`/arcane`) || PathPrefix(`/arcane/`))"
       entryPoints: ["websecure"]
       middlewares: ["to-arcane-domain"]
       service: "noop@internal"
@@ -81,7 +81,7 @@ http:
     # Arcane Docker Management Cockpit (VM1: zap-vps)
     # ----------------------------------------------------
     arcane:
-      rule: "HostRegexp(`arcane.{domain:.+}`)"
+      rule: "HostRegexp(`^arcane\\..+$`)"
       entryPoints: ["websecure"]
       middlewares: ["app-fail2ban", "security-headers", "compression"]
       service: "arcane-svc"
@@ -92,7 +92,7 @@ http:
     # LiteLLM AI Gateway (VM2: oci01-flex)
     # ----------------------------------------------------
     litellm:
-      rule: "HostRegexp(`litellm.{domain:.+}`)"
+      rule: "HostRegexp(`^litellm\\..+$`)"
       entryPoints: ["websecure"]
       middlewares: ["app-fail2ban", "security-headers"]
       service: "litellm-svc"
@@ -103,7 +103,7 @@ http:
     # Open-WebUI (VM2: oci01-flex)
     # ----------------------------------------------------
     open-webui:
-      rule: "HostRegexp(`open-webui.{domain:.+}`)"
+      rule: "HostRegexp(`^open-webui\\..+$`)"
       entryPoints: ["websecure"]
       middlewares: ["app-fail2ban", "security-headers", "compression"]
       service: "openwebui-svc"
@@ -114,7 +114,7 @@ http:
     # LiteLLM Helper (VM2: oci01-flex)
     # ----------------------------------------------------
     litellm-helper:
-      rule: "HostRegexp(`litellm-helper.{domain:.+}`)"
+      rule: "HostRegexp(`^litellm-helper\\..+$`)"
       entryPoints: ["websecure"]
       middlewares: ["app-fail2ban", "security-headers"]
       service: "litellmhelper-svc"
@@ -125,7 +125,7 @@ http:
     # Seafile (VM1: zap-vps)
     # ----------------------------------------------------
     seafile:
-      rule: "HostRegexp(`(mycloud|seafile).{domain:.+}`)"
+      rule: "HostRegexp(`^(mycloud|seafile)\\..+$`)"
       entryPoints: ["websecure"]
       middlewares: ["app-fail2ban", "security-headers"]
       service: "seafile-svc"
@@ -136,7 +136,7 @@ http:
     # Immich Photo Library (VM1: zap-vps)
     # ----------------------------------------------------
     immich:
-      rule: "HostRegexp(`photos.{domain:.+}`)"
+      rule: "HostRegexp(`^photos\\..+$`)"
       entryPoints: ["websecure"]
       middlewares: ["app-fail2ban", "security-headers"]
       service: "immich-svc"
