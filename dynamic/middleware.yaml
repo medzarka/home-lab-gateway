@@ -37,3 +37,12 @@ http:
         regex: "^https?://homelab\\.bluewave\\.work/arcane/?(.*)"
         replacement: "https://arcane.bluewave.work/${1}"
         permanent: false
+
+    # ----------------------------------------------------
+    # Basic Authentication for Traefik Dashboard GUI
+    # ----------------------------------------------------
+    traefik-auth:
+      basicAuth:
+        users:
+          # Default credentials -> Username: admin | Password: admin
+          - "admin:$apr1$WTlx1tHz$gOmWsHMuQcfTAWkc/2DH.."

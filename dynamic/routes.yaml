@@ -1,6 +1,17 @@
 http:
   routers:
     # ----------------------------------------------------
+    # Traefik Web Dashboard & Visual Monitoring GUI
+    # ----------------------------------------------------
+    traefik-dashboard:
+      rule: "Host(`traefik.bluewave.work`)"
+      entryPoints: ["websecure"]
+      middlewares: ["traefik-auth", "security-headers", "compression"]
+      service: "api@internal"
+      tls:
+        certResolver: "cloudflare"
+
+    # ----------------------------------------------------
     # Shortcut: /arcane -> Dedicated Arcane Domain
     # ----------------------------------------------------
     arcane-redirect:
