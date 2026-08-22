@@ -1,13 +1,25 @@
 http:
   routers:
     # ----------------------------------------------------
-    # GoAccess Real-Time Traffic & Bandwidth Dashboard
+    # GoAccess WebSocket Live Feed (Real-Time Metrics Stream)
+    # ----------------------------------------------------
+    traffic-ws:
+      rule: "Host(`traffic.bluewave.work`) && (PathPrefix(`/ws`) || Header(`Upgrade`, `websocket`))"
+      entryPoints: ["websecure"]
+      service: "traffic-ws-svc"
+      priority: 50
+      tls:
+        certResolver: "cloudflare"
+
+    # ----------------------------------------------------
+    # GoAccess HTML Web Report
     # ----------------------------------------------------
     traffic:
       rule: "Host(`traffic.bluewave.work`)"
       entryPoints: ["websecure"]
       middlewares: ["traefik-auth", "security-headers"]
-      service: "traffic-svc"
+      service: "traffic-web-svc"
+      priority: 10
       tls:
         certResolver: "cloudflare"
 
@@ -117,10 +129,14 @@ http:
       loadBalancer:
         servers:
           - url: "http://127.0.0.1:80"
-    traffic-svc:
+    traffic-web-svc:
       loadBalancer:
         servers:
           - url: "http://traffic_web:80"
+    traffic-ws-svc:
+      loadBalancer:
+        servers:
+          - url: "http://goaccess:7890"
     dashboard-svc:
       loadBalancer:
         servers:

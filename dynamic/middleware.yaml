@@ -20,22 +20,17 @@ http:
     app-fail2ban:
       plugin:
         fail2ban:
-          blacklist:
-            ip: []
-          whitelist:
-            ip:
+          bantime: "1h"
+          findtime: "5m"
+          maxretry: 5
+          statuscode: "400-403,404,429"
+          allowlist:
+            ips:
               - "100.64.0.0/10"   # Whitelist all Tailscale mesh nodes
               - "127.0.0.1/32"
               - "10.0.0.0/8"
               - "172.16.0.0/12"
               - "192.168.0.0/16"
-          rules:
-            urlregexps:
-              - regex: ".*"
-            statuscodes: "400-403,404,429"
-            findtime: 300         # 5 minutes window
-            maxretry: 5           # Ban after 5 failed attempts
-            bantime: 3600         # Ban for 1 hour
 
     # ----------------------------------------------------
     # Rate Limiting (Brute-Force & DDoS Protection)
@@ -62,7 +57,7 @@ http:
         permanent: false
 
     # ----------------------------------------------------
-    # Basic Authentication for Traefik Dashboard GUI
+    # Basic Authentication for Traefik & GoAccess Dashboards
     # ----------------------------------------------------
     traefik-auth:
       basicAuth:
