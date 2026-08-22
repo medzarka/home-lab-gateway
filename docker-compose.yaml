@@ -25,8 +25,8 @@ services:
         chmod 600 /data/traefik/acme.json
 
         echo ">>> [Storage Init] Interpolating ROOT_DOMAIN ($$ROOT_DOMAIN) from .env into runtime configs..."
-        sed -i "s|example.com|$$ROOT_DOMAIN|g" /authelia_src/configuration.yml 2>/dev/null || true
-        sed -i "s|example.com|$$ROOT_DOMAIN|g" /dynamic_src/middleware.yaml 2>/dev/null || true
+        sed "s|example.com|$$ROOT_DOMAIN|g" /authelia_src/configuration.yml > /tmp/cfg.yml && cp -f /tmp/cfg.yml /authelia_src/configuration.yml
+        sed "s|example.com|$$ROOT_DOMAIN|g" /dynamic_src/middleware.yaml > /tmp/mid.yml && cp -f /tmp/mid.yml /dynamic_src/middleware.yaml
 
         echo ">>> [Storage Init] Runtime configs generated. Storage guard active."
         sleep infinity
